@@ -1,7 +1,14 @@
 
-![logo](./figures/AGILE-logo1.png)
+<p align="center">
+  <picture>
+    <img alt="AGILE" src="https://raw.githubusercontent.com/arc-research-lab/AGILE/refs/heads/main/figures/AGILE-logo1.png" width=55%>
+  </picture>
+</p>
 
-# ****AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration****
+<h2 align="center">
+AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration
+</h2>
+
 
 ## Installation
 
