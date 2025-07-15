@@ -1,0 +1,1 @@
+cmd_/home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/nv-p2p-dummy.mod := { echo  /home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/nv-p2p-dummy.o;  echo; } > /home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/nv-p2p-dummy.mod

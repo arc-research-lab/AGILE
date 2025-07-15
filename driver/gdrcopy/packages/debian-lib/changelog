@@ -1,0 +1,20 @@
+libgdrapi (@FULL_VERSION@) stable; urgency=low
+
+  * Introduce gdr_get_info_v2.
+  * Introduce new copy algorithm for device mappings.
+  * Add support for NVIDIA BLUEFIELD-3.
+
+ -- Pak Markthub <pmarkthub@nvidia.com>  Mon, 01 Sep 2023 11:59:59 -0700
+
+libgdrapi (2.3.1) stable; urgency=low
+
+  * No change
+
+ -- Pak Markthub <pmarkthub@nvidia.com>  Mon, 12 May 2023 11:59:59 -0700
+
+libgdrapi (2.3) stable; urgency=low
+
+  * Initial version of libgdrapi package -- was a part of gdrcopy package.
+
+ -- Pak Markthub <pmarkthub@nvidia.com>  Mon, 23 Jul 2021 11:59:59 -0700
+

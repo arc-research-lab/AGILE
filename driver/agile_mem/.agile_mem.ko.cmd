@@ -1,0 +1,1 @@
+cmd_/home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -z noexecstack   --build-id  -T ./scripts/module-common.lds -o /home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.ko /home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.o /home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.mod.o;  true

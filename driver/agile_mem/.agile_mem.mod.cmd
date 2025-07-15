@@ -1,0 +1,1 @@
+cmd_/home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.mod := { echo  /home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.o;  echo; } > /home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.mod
