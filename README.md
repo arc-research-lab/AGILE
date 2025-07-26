@@ -65,3 +65,12 @@ booktitle = {Proceedings of the International Conference for High Performance Co
 series = {Supercomputing '25}
 }
 ```
+
+
+### Thanks for your interest in this project. Your growing engagement will inspire us to improve and enhance AGILE continually.
+<p align="center">
+  <picture>
+    <img alt="AGILE" src="https://agile-traffic.zhuopingyang.com/traffic.png" width=90%>
+  </picture>
+</p>
+
