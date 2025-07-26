@@ -16,11 +16,11 @@ AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCo
 
 AGILE's host code requires a continuous physical memory region, which is reserved in **/etc/default/grub** by adding the **GRUB\_CMDLINE\_LINUX** option. For example, **GRUB\_CMDLINE\_LINUX="memmap=1G\\\\\\$128G"** will reserve 1 GB DRAM memory starting at 128 GB. After changing **/etc/default/grub**, executing **sudo update-grub** and **sudo reboot** to apply the modification. 
 
-AGILE relys on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
+AGILE relies on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
 
 
 ## Experiments
-AGILE has been evaluated on a Dell R750 server running Ubuntu 20.04, equipped with an Nvidia RTX 5000 Ada GPU, a Dell Ent NVMe AGN MU AIC 1.6TB SSD, and two Samsung 990 PRO 1TB SSDs. The Nvidia Driver version is 550.54 and the CUDA version is 12.8.
+AGILE has been evaluated on a Dell R750 server running Ubuntu 20.04, equipped with an Nvidia RTX 5000 Ada GPU, a Dell Ent NVMe AGN MU AIC 1.6TB SSD, and two Samsung 990 PRO 1TB SSDs. The Nvidia Driver version is 550.54, and the CUDA version is 12.8.
 
 For setting up the baseline BaM, please refer to [https://github.com/ZaidQureshi/bam](https://github.com/ZaidQureshi/bam). The BaM version baselines can be found at [./baseline/benchmarks](./baseline/benchmarks).
 
@@ -45,16 +45,19 @@ For setting up the baseline BaM, please refer to [https://github.com/ZaidQureshi
 | Figure 7 - 10| `run_dlrm.sh` & `auto_dlrm.sh`         |
 | Figure 11    | `run_bfs*.sh` & `run_spmv*.sh`         |
 
-## Todo-lists
+## Todo-List
 
-We will keep updating AGILE with more features and you are more than welcome to request us to add more functionalities. Currently, we have following plans for improving AGILE:
+We will keep updating AGILE with more features, and you are more than welcome to request more functionalities. Currently, we have the following plans for improving AGILE:
 
-- [ ] Add documentations for AGILE (APIs, customizing software-cache policy, etc.)
+- [ ] Avoid using /dev/mem when accessing PCIe BAR.
+- [ ] Avoid using /etc/default/grub to allocate continuous buffers.
+- [ ] Support for Docker container.
+- [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
 - [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Support for multi-GPU-multi-SSD.
 
 
-## Citations
+## Citation
 
 ```bibtex
 @inproceedings{sc25agile,
