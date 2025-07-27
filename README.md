@@ -70,9 +70,10 @@ For setting up the baseline BaM, please refer to [https://github.com/ZaidQureshi
 We will keep updating AGILE with more features, and you are more than welcome to request more functionalities. Currently, we have the following plans for improving AGILE:
 
 - [ ] Avoid using /dev/mem when accessing PCIe BAR.
-- [ ] Avoid using /etc/default/grub to allocate continuous buffers.
+- [ ] Avoid using /etc/default/grub to allocate contiguous buffers.
 - [ ] Support for Docker container.
 - [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
+- [ ] Provide more software cache policies.
 - [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Support for multi-GPU-multi-SSD.
 
