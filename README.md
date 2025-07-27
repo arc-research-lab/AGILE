@@ -10,6 +10,26 @@ AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration
 </h2>
 
 
+## Citation
+
+```bibtex
+@inproceedings{sc25agile,
+author = {Yang, Zhuoping and Zhuang, Jinming and Chen, Xingzhen and Jones, Alex K and Zhou, Peipei},
+title = {AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration},
+year = {2025},
+booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage, and Analysis, SC 2025},
+series = {Supercomputing '25}
+}
+```
+
+
+### Thanks for your interest in this project. Your growing engagement will inspire us to improve and enhance AGILE continually.
+<p align="center">
+  <picture>
+    <img alt="AGILE" src="https://agile-traffic.zhuopingyang.com/traffic.png" width=100%>
+  </picture>
+</p>
+
 ## Installation
 
 AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
@@ -57,23 +77,5 @@ We will keep updating AGILE with more features, and you are more than welcome to
 - [ ] Support for multi-GPU-multi-SSD.
 
 
-## Citation
 
-```bibtex
-@inproceedings{sc25agile,
-author = {Yang, Zhuoping and Zhuang, Jinming and Chen, Xingzhen and Jones, Alex K and Zhou, Peipei},
-title = {AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration},
-year = {2025},
-booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage, and Analysis, SC 2025},
-series = {Supercomputing '25}
-}
-```
-
-
-### Thanks for your interest in this project. Your growing engagement will inspire us to improve and enhance AGILE continually.
-<p align="center">
-  <picture>
-    <img alt="AGILE" src="https://agile-traffic.zhuopingyang.com/traffic.png" width=100%>
-  </picture>
-</p>
 
