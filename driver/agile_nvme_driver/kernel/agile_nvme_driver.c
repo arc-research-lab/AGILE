@@ -47,16 +47,19 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 return -EFAULT;
 
             if (ndev->dma_buf.size == 0) {
-                pr_err("DMA buffer size cannot be zero\n");
+                pr_err("%s: DMA buffer size cannot be zero\n", DRIVER_NAME);
                 return -EINVAL;
             }
+
+            // align size to page size
+            ndev->dma_buf.size = PAGE_ALIGN(ndev->dma_buf.size);
 
             ndev->dma_buf.vaddr = dma_alloc_coherent(&ndev->pdev->dev,
                                                       ndev->dma_buf.size,
                                                       &ndev->dma_buf.addr,
                                                       GFP_KERNEL);
             if (!ndev->dma_buf.vaddr) {
-                pr_err("Failed to allocate DMA buffer\n");
+                pr_err("%s: Failed to allocate DMA buffer\n", DRIVER_NAME);
                 return -ENOMEM;
             }
 
@@ -65,8 +68,8 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
             ndev->mmap_flag = DMA_MMAP;
 
-            pr_info("Allocated DMA buffer at addr=0x%llx size=%u\n",
-                    (unsigned long long)ndev->dma_buf.addr, ndev->dma_buf.size);
+            pr_info("%s: Allocated DMA buffer at addr=0x%llx size=%u\n",
+                    DRIVER_NAME, (unsigned long long)ndev->dma_buf.addr, ndev->dma_buf.size);
 
             break;
         case IOCTL_FREE_DMA_BUFFER:
@@ -76,9 +79,9 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 ndev->dma_buf.vaddr = NULL;
                 ndev->dma_buf.addr = 0;
                 ndev->dma_buf.size = 0;
-                pr_info("Freed DMA buffer\n");
+                pr_info("%s: Freed DMA buffer\n", DRIVER_NAME);
             } else {
-                pr_err("No DMA buffer allocated to free\n");
+                pr_err("%s: No DMA buffer allocated to free\n", DRIVER_NAME);
                 return -EINVAL;
             }
 
@@ -91,7 +94,7 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 return -EFAULT;
 
             if (ndev->dma_buf.size == 0) {
-                pr_err("DMA buffer size cannot be zero\n");
+                pr_err("%s: DMA buffer size cannot be zero\n", DRIVER_NAME);
                 return -EINVAL;
             }
             
@@ -108,7 +111,7 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 return -EFAULT;
             break;
         default:
-            pr_err("IOCTL command not suported: %d\n", cmd);
+            pr_err("%s: IOCTL command not supported: %d\n", DRIVER_NAME, cmd);
             return -EFAULT;
     }
     return 0;
@@ -119,7 +122,7 @@ static int nvme_open(struct inode *inode, struct file *file)
     struct nvme_dev *ndev = container_of(inode->i_cdev, struct nvme_dev, cdev);
     ndev->mmap_flag = BAR_MMAP;
     file->private_data = ndev;
-    pr_info("nvme_open: PCI device = %s\n", pci_name(ndev->pdev));
+    pr_info("%s: PCI device = %s open\n", DRIVER_NAME, pci_name(ndev->pdev));
     return 0;
 }
 
@@ -131,11 +134,13 @@ static int fp_mmap(struct file *filp, struct vm_area_struct *vma)
     switch(ndev->mmap_flag){
         case BAR_MMAP:
             if (req_size > ndev->bar.size){
-                pr_err("requested mmap size is larger than the avaliable BAR size\n");
+                pr_err("%s: requested mmap size is larger than the avaliable BAR size\n", DRIVER_NAME);
                 return -EINVAL;
             }
             // Optional: make mapping non-cached for MMIO
             vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+            pr_info("%s: remapping BAR at addr=0x%llx size=%llu\n",
+                    DRIVER_NAME, (unsigned long long)ndev->bar.phys_addr, (unsigned long long)ndev->bar.size);
             return remap_pfn_range(vma,
                             vma->vm_start,
                             ndev->bar.phys_addr >> PAGE_SHIFT,
@@ -143,16 +148,20 @@ static int fp_mmap(struct file *filp, struct vm_area_struct *vma)
                             vma->vm_page_prot);
         case DMA_MMAP:
             if (req_size > ndev->dma_buf.size){
-                pr_err("requested mmap size is larger than the avaliable dma buffer size\n");
+                pr_err("%s: requested mmap size is larger than the avaliable dma buffer size %ld > %d addr: 0x%llx\n",
+                        DRIVER_NAME, req_size, ndev->dma_buf.size, (unsigned long long)ndev->dma_buf.addr);
                 return -EINVAL;
             }
 
             if (!ndev->dma_buf.vaddr) {
-                pr_err("DMA buffer not allocated\n");
+                pr_err("%s: DMA buffer not allocated\n", DRIVER_NAME);
                 return -EINVAL;
             }
             // Optional: make mapping non-cached for MMIO
             vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+            pr_info("%s: remapping DMA buffer at addr=0x%llx size=%u\n",
+                    DRIVER_NAME, (unsigned long long)ndev->dma_buf.addr, ndev->dma_buf.size);
             return remap_pfn_range(vma,
                             vma->vm_start,
                             ndev->dma_buf.addr >> PAGE_SHIFT,
@@ -173,7 +182,6 @@ static const struct file_operations nvme_fops = {
 
 static const struct pci_device_id nvme_ids[] = {
     { PCI_DEVICE(0x0c51, 0x0110) }, // Replace with real IDs as needed
-    { PCI_DEVICE(0x144d, 0xa80c) },
     { 0, }
 };
 
@@ -196,11 +204,9 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     ndev->bar.phys_addr = pci_resource_start(pdev, bar);
     ndev->bar.size = pci_resource_len(pdev, bar);
 
-    // ndev->index = nvme_device_count++;
     ndev->pdev = pdev;
     pci_set_drvdata(pdev, ndev);
 
-    // Dynamically allocate a device number for each device
     ret = alloc_chrdev_region(&ndev->devt, 0, 1, DEVICE_NAME_FMT);
     if (ret)
         goto err_disable;
@@ -283,4 +289,4 @@ module_exit(nvme_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Zhuoping Yang");
-MODULE_DESCRIPTION("PCIe BAR access ioctl for unlimited NVMe SSDs using dynamic dev_t");
+MODULE_DESCRIPTION("AGILE NVMe SSD Driver for accessing PCIe BAR and allocating and managing DMA buffers");
