@@ -73,13 +73,18 @@ static long nvme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
             break;
         case IOCTL_FREE_DMA_BUFFER:
+            if(copy_from_user(&ndev->dma_buf, (void __user *)arg, sizeof(ndev->dma_buf)))
+                return -EFAULT;
+            pr_info("%s: Freed DMA buffer: addr=0x%llx size=%u\n", DRIVER_NAME,
+                    (unsigned long long)ndev->dma_buf.addr, ndev->dma_buf.size);
+
             if (ndev->dma_buf.vaddr) {
                 dma_free_coherent(&ndev->pdev->dev, ndev->dma_buf.size,
                                   ndev->dma_buf.vaddr, ndev->dma_buf.addr);
                 ndev->dma_buf.vaddr = NULL;
                 ndev->dma_buf.addr = 0;
                 ndev->dma_buf.size = 0;
-                pr_info("%s: Freed DMA buffer\n", DRIVER_NAME);
+                
             } else {
                 pr_err("%s: No DMA buffer allocated to free\n", DRIVER_NAME);
                 return -EINVAL;
@@ -182,6 +187,7 @@ static const struct file_operations nvme_fops = {
 
 static const struct pci_device_id nvme_ids[] = {
     { PCI_DEVICE(0x0c51, 0x0110) }, // Replace with real IDs as needed
+    { PCI_DEVICE(0x144d, 0xa80c) },
     { 0, }
 };
 
