@@ -12,6 +12,7 @@ AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration
 
 ## Citation
 
+---
 ```bibtex
 @inproceedings{sc25agile,
 author = {Yang, Zhuoping and Zhuang, Jinming and Chen, Xingzhen and Jones, Alex K and Zhou, Peipei},
@@ -21,6 +22,7 @@ booktitle = {Proceedings of the International Conference for High Performance Co
 series = {Supercomputing '25}
 }
 ```
+---
 
 
 ### Thanks for your interest in this project. Your growing engagement will inspire us to improve and enhance AGILE continually.
@@ -30,13 +32,13 @@ series = {Supercomputing '25}
   </picture>
 </p>
 
-## 🎉 AGILE tutorial examples are keeping updating now! See [./toturial](./toturial) 👀
+## 🎉 AGILE tutorial examples are keeping updating now! See [./tutorial](./tutorial) 👀
 
 ## Installation
 
 AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
 
-To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./toturial/00_Select_Target_SSD) for more details.
+To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./tutorial/00_Select_Target_SSD) for more details.
 
 AGILE relies on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
 
