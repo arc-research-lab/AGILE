@@ -30,7 +30,7 @@ series = {Supercomputing '25}
   </picture>
 </p>
 
-## 🎉 AGILE tutorial examples are keeping updating now! Check out at [./toturial](./toturial)
+## 🎉 AGILE tutorial examples are keeping updating now! 👀 [./toturial](./toturial)
 
 ## Installation
 
