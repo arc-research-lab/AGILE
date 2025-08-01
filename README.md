@@ -73,7 +73,7 @@ We will keep updating AGILE with more features, and you are more than welcome to
 
 - [x] Avoid using /dev/mem when accessing PCIe BAR.
 - [x] Avoid using /etc/default/grub to allocate contiguous buffers.
-- [ ] Support for Docker container.
+- [x] Support for Docker container.
 - [ ] Tutorial examples.
 - [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
 - [ ] Update the benchmarking code with new AGILE APIs.
