@@ -30,13 +30,13 @@ series = {Supercomputing '25}
   </picture>
 </p>
 
-## 🎉 AGILE tutorial examples are keeping updating now! 👀 [./toturial](./toturial)
+## 🎉 AGILE tutorial examples are keeping updating now! See [./toturial](./toturial) 👀
 
 ## Installation
 
 AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
 
-AGILE's host code requires a continuous physical memory region, which is reserved in **/etc/default/grub** by adding the **GRUB\_CMDLINE\_LINUX** option. For example, **GRUB\_CMDLINE\_LINUX="memmap=1G\\\\\\$128G"** will reserve 1 GB DRAM memory starting at 128 GB. After changing **/etc/default/grub**, executing **sudo update-grub** and **sudo reboot** to apply the modification. 
+To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./toturial/00_Select_Target_SSD) for more details.
 
 AGILE relies on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
 
