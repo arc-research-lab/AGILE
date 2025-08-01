@@ -78,7 +78,7 @@ We will keep updating AGILE with more features, and you are more than welcome to
 - [x] Support for Docker container.
 - [ ] Tutorial examples.
 - [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
-- [ ] Update the benchmarking code with new AGILE APIs.
+- [ ] Update the benchmarking code using AGILE NVMe driver.
 - [ ] Provide more software cache policies.
 - [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Support for multi-GPU-multi-SSD.
