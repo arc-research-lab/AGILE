@@ -9,14 +9,17 @@
 #include <atomic>
 #include <functional>
 #include <chrono>
-#include <sys/ioctl.h>
+
 
 
 #include "agile_swcache.h"
 #include "agile_ctrl.h"
 #include "agile_dmem.h"
 #include "nvme_reg_help.h"
-#include "agile_helpper.h"
+#include "agile_helper.h"
+
+#include "agile_nvme_driver.h"
+
 
 #define CQ_ALIGN 64 // for 4K alignment, if 16 is used then the cq depth should be 256
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -27,29 +30,23 @@
 
 class NvmeConfig {
 public:
+    std::string dev;
+    int fd;
+    volatile unsigned int * bar;
+    unsigned long bar_size;
     
     unsigned int ssd_blk_offset;
     unsigned int queue_num;
     unsigned int queue_depth;
     unsigned long gpu_mem_addr;
 
-    int fd;
-    volatile unsigned int * bar;
-
     unsigned int CAP_DSTRD; // Doorbell register stride
     unsigned int CAP_MQES; // Max Queue Entries size
     unsigned int CAP_TO; // Timeout
+    
 
-    // int dma_fd;
-    // unsigned int * dma_ptr;
-    // unsigned long admin_phy_addr;
-
-    std::string dev;
-    unsigned int bar_size;
-
-    void * cpu_dma_ptr;
-    unsigned long cpu_dma_phy_addr;
-    unsigned int cpu_dma_size;
+    struct dma_buffer asq_buf;
+    struct dma_buffer acq_buf;
 
     unsigned int asq_pos;
     unsigned int acq_pos;
@@ -61,73 +58,109 @@ public:
     volatile unsigned int * admin_sqdb;
 
 
-    __host__ NvmeConfig(std::string dev, unsigned int bar_size, unsigned int queue_num, unsigned int queue_depth, unsigned int ssd_blk_offset, int dma_fd) \
-    : dev(dev), bar_size(bar_size), queue_num(queue_num), queue_depth(queue_depth), ssd_blk_offset(ssd_blk_offset) {
+    __host__ NvmeConfig(std::string dev, unsigned int ssd_blk_offset, unsigned int queue_num, unsigned int queue_depth) \
+    : dev(dev), queue_num(queue_num), queue_depth(queue_depth), ssd_blk_offset(ssd_blk_offset) {
         this->asq_pos = 0;
         this->acq_pos = 0;
         this->admin_q_depth = 256; // TODO modify this
         this->phase = 0;
+
     }
 
     __host__ void openNvme(){
 #if REGISTER_NVME
-        this->fd = open("/dev/mem", O_RDWR);
+        this->fd = open(this->dev.c_str(), O_RDWR);
         if(this->fd == -1){
             std::cout << "open device fail: " << dev << std::endl;
             exit(0);
         }
 
-        this->bar = (volatile unsigned int *) mmap(NULL, this->bar_size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, std::stoul(this->dev, nullptr, 16));
+        // get the BAR size
+        struct bar_info info = {0};
+        if(ioctl(this->fd, IOCTL_GET_BAR, &info) < 0){
+            std::cout << "ioctl get bar fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+        this->bar_size = info.size;
+
+        // map the BAR
+        this->bar = (volatile unsigned int *) mmap(NULL, this->bar_size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); 
         if(this->bar == MAP_FAILED){
             std::cout << "mmap dev bar fail: " << dev << std::endl;
             close(this->fd);
             exit(0);
         }
 
-        // std::cout << "admin phy addr: " << std::hex << this->cpu_dma_phy_addr << std::dec << std::endl;
-
+        // Initialize the NVMe controller
         this->CAP_DSTRD = CAP$DSTRD(this->bar);
         this->CAP_MQES = CAP$MQES(this->bar) + 1;
         this->CAP_TO = CAP$TO(this->bar);
-
-        // std::cout << "this->CAP_DSTRD: " << this->CAP_DSTRD << std::endl;
-        // std::cout << "this->CAP_MQES: " << this->CAP_MQES << std::endl;
-        // std::cout << "this->CAP_TO: " << this->CAP_TO << std::endl;
 
         volatile uint32_t* cc = CC(this->bar);
         *cc = *cc & ~1;
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 0){
-            // printf("CSTS$RDY not ready\n");
             std::cout << "CSTS$RDY not ready\n";
             usleep(this->CAP_TO * 500);
         }
+
+        // calculate admin queue size
+        unsigned int cq_size = this->admin_q_depth * 4; // 4 bytes per CQ entry
+        unsigned int sq_size = this->admin_q_depth * 16; // 16 bytes per SQ entry
+        
+
+        // allocate memory for admin queues
+        this->acq_buf.size = cq_size * sizeof(unsigned int);
+        if(ioctl(this->fd, IOCTL_ALLOCATE_DMA_BUFFER, &this->acq_buf) < 0){
+            std::cout << "ioctl alloc acq buf fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+        this->cq_ptr = (volatile unsigned int *) mmap(NULL, this->acq_buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); // this->acq_buf.addr
+        if(this->cq_ptr == MAP_FAILED){
+            std::cout << "mmap admin cq fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+        memset((void*)this->cq_ptr, 0, this->acq_buf.size);
+
+        this->asq_buf.size = sq_size  * sizeof(unsigned int);
+        if(ioctl(this->fd, IOCTL_ALLOCATE_DMA_BUFFER, &this->asq_buf) < 0){
+            std::cout << "ioctl alloc asq buf fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+
+        this->sq_ptr = (volatile unsigned int *) mmap(NULL, this->asq_buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); // this->asq_buf.addr
+        if(this->sq_ptr == MAP_FAILED){
+            std::cout << "mmap admin queues fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+        memset((void*)this->sq_ptr, 0, this->asq_buf.size);
 
         volatile uint32_t* aqa = AQA(this->bar);
         *aqa = AQA$AQS(this->admin_q_depth - 1) | AQA$AQC(this->admin_q_depth - 1);
 
         volatile uint64_t* acq = ACQ(this->bar);
-        *acq = this->cpu_dma_phy_addr;
-        cq_ptr = (volatile unsigned int *) ((void*)this->cpu_dma_ptr);
+        *acq = this->acq_buf.addr; 
 
         volatile uint64_t* asq = ASQ(this->bar);
-        *asq = this->cpu_dma_phy_addr + this->admin_q_depth * 32;
-        sq_ptr = (volatile unsigned int *) (((void*) this->cpu_dma_ptr) + this->admin_q_depth * 32);
+        *asq = this->asq_buf.addr;
 
         
         *cc = CC$IOCQES(4) | CC$IOSQES(6) | CC$MPS(0) | CC$CSS(0) | CC$EN(1);
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 1){
-            // printf("CSTS$RDY not ready\n");
             std::cout << "CSTS$RDY not ready\n";
             usleep(this->CAP_TO * 500);
         }
 
-        this->admin_sqdb = SQ_DBL(bar, 0, CAP_DSTRD);
-        this->admin_cqdb = CQ_DBL(bar, 0, CAP_DSTRD);
+        this->admin_sqdb = SQ_DBL(this->bar, 0, CAP_DSTRD);
+        this->admin_cqdb = CQ_DBL(this->bar, 0, CAP_DSTRD);
 
         cuda_err_chk(cudaHostRegister(((void*)this->bar), this->bar_size, cudaHostRegisterIoMemory));
-        // printf("cudaHostRegister bar %p size: %d\n", this->bar, this->bar_size);
         for(unsigned int i = 0; i < this->admin_q_depth; ++i){
             for(unsigned int j = 0; j < 16; ++j){
                 sq_ptr[i * 16 + j] = 0;
@@ -136,6 +169,8 @@ public:
                 cq_ptr[i * 4 + j] = 0;
             }
         }
+
+        std::cout << "NVMe device opened: " << dev << std::endl;
         
         setQueueNums(queue_num);
 
@@ -173,6 +208,21 @@ public:
         cuda_err_chk(cudaHostUnregister(((void*)this->bar)));
         
         munmap(((void*)this->bar), this->bar_size);
+
+        munmap((void*)this->cq_ptr, this->acq_buf.size);
+        munmap((void*)this->sq_ptr, this->asq_buf.size);
+
+        if(ioctl(this->fd, IOCTL_FREE_DMA_BUFFER, &this->asq_buf) < 0){
+            std::cout << "ioctl free asq buf fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+        if(ioctl(this->fd, IOCTL_FREE_DMA_BUFFER, &this->acq_buf) < 0){
+            std::cout << "ioctl free acq buf fail: " << dev << std::endl;
+            close(this->fd);
+            exit(0);
+        }
+
         close(this->fd);
 #endif
     }
@@ -181,11 +231,11 @@ public:
         // printf("~NvmeConfig\n");
     }
 
-    __host__ void setCPUMem(void * cpu_dma_ptr, unsigned long cpu_dma_phy_addr, unsigned int cpu_dma_size){
-        this->cpu_dma_ptr = cpu_dma_ptr;
-        this->cpu_dma_phy_addr = cpu_dma_phy_addr;
-        this->cpu_dma_size = cpu_dma_size;
-    }
+    // __host__ void setCPUMem(void * cpu_dma_ptr, unsigned long cpu_dma_phy_addr, unsigned int cpu_dma_size){
+    //     this->cpu_dma_ptr = cpu_dma_ptr;
+    //     this->cpu_dma_phy_addr = cpu_dma_phy_addr;
+    //     this->cpu_dma_size = cpu_dma_size;
+    // }
 
     __host__ unsigned int getRequiredMemSize(){
         return queue_num * queue_depth * (64 + CQ_ALIGN); // TODO: check if CQ slot size can be 16
@@ -202,13 +252,18 @@ public:
     __host__ void wait_cpl(){
         volatile unsigned int * cpl = cq_ptr + acq_pos * 4;
         while(((cpl[3] >> 16) & 0x1) == this->phase){
+            // std::cout << "wait_cpl: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
+            // usleep(1000);
         }
         if(((cpl[3] >> 17) & 0x1) != 0){
             std::cout << "Admin NVMe CPL: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
         }
+
+        // std::cout << "Admin NVMe CPL: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
         if(((cpl[3] >> 17) & 0x1) != 0){
             exit(0);
         }
+
         acq_pos++;
         if(acq_pos == this->admin_q_depth){
             acq_pos = 0;
@@ -267,8 +322,6 @@ public:
         *admin_sqdb = asq_pos;
         this->wait_cpl();
 
-        
-        
         for(unsigned int i = 0; i < this->queue_depth; ++i){
             for(unsigned int j = 0; j < 16; ++j){
                 h_sq_ptr[i * 16 + j] = 0;
@@ -316,14 +369,14 @@ class AgileHost {
     CUdeviceptr d_gpu_ptr;
     void * h_gpu_ptr;
 
-    int agile_buffer_dev;
+    // int agile_buffer_dev;
 
     // void * h_cpu_ptr;
     // void * d_cpu_ptr;
 
-    int cpu_mem_fd;
-    void * cpu_mem_ptr;
-    unsigned long cpu_mem_offset;  // maintain the 64K aglinment of the cpu memory
+    // int cpu_mem_fd;
+    // void * cpu_mem_ptr;
+    // unsigned long cpu_mem_offset;  // maintain the 64K aglinment of the cpu memory
 
     // unsigned long * cpu_mem_table;
     // unsigned int cpu_mem_table_size;
@@ -364,23 +417,23 @@ public:
         // init cache hierarchy
         h_hierarchy = new AgileCacheHierarchy<GPUCacheImpl, CPUCacheImpl, ShareTableImpl>;
 
-        this->cpu_mem_fd = open("/dev/agile_mem", O_RDWR);
-        if(this->cpu_mem_fd == -1){
-            std::cerr << "open /dev/agile_mem fail" << std::endl;
-            exit(0);
-        }
+        // this->cpu_mem_fd = open("/dev/agile_mem", O_RDWR);
+        // if(this->cpu_mem_fd == -1){
+        //     std::cerr << "open /dev/agile_mem fail" << std::endl;
+        //     exit(0);
+        // }
 
-        this->cpu_mem_ptr = (unsigned int *) mmap(NULL, CPU_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, this->cpu_mem_fd, 0);
-        if(this->cpu_mem_ptr == MAP_FAILED){
-            std::cerr << "mmap /dev/agile_mem fail" << std::endl;
-            exit(0);
-        }
+        // this->cpu_mem_ptr = (unsigned int *) mmap(NULL, CPU_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, this->cpu_mem_fd, 0);
+        // if(this->cpu_mem_ptr == MAP_FAILED){
+        //     std::cerr << "mmap /dev/agile_mem fail" << std::endl;
+        //     exit(0);
+        // }
 
-        this->cpu_mem_offset = 0;
-        cuda_err_chk(cudaHostRegister(this->cpu_mem_ptr, CPU_MEM_SIZE, cudaHostRegisterIoMemory));
+        // this->cpu_mem_offset = 0;
+        // cuda_err_chk(cudaHostRegister(this->cpu_mem_ptr, CPU_MEM_SIZE, cudaHostRegisterIoMemory));
 
-        printf("cpu memory addr: %p\n", this->cpu_mem_ptr);
-        printf("data %d\n", ((unsigned int*)this->cpu_mem_ptr)[0]);
+        // printf("cpu memory addr: %p\n", this->cpu_mem_ptr);
+        // printf("data %d\n", ((unsigned int*)this->cpu_mem_ptr)[0]);
 
     }
 
@@ -464,9 +517,6 @@ public:
 
     __host__ void initNvme(){
         for(unsigned int i = 0; i < this->nvme_dev.size(); ++i){
-            void * ptr;
-            unsigned long phy_addr = this->getCPUPinnedMem(ptr, 65536); // get 65536 bytes for the nvme device, aligned with 64K
-            this->nvme_dev[i].setCPUMem(ptr, phy_addr, 65536);
             this->nvme_dev[i].openNvme();
         }
     }
@@ -583,39 +633,21 @@ public:
 
 #endif
 
-    __host__ void initCPUCache(){
+    // __host__ void initCPUCache(){
 
-        // this->h_cpu_cache_table_size = this->getCPUPinnedMemSize() / (1024 * 1024 * 4) + (this->getCPUPinnedMemSize() % (1024 * 1024 * 4) == 0 ? 0 : 1);
-        // this->h_cpu_cache_data_ptr = (void **) malloc(sizeof(void *) * h_cpu_cache_table_size);
-        // this->h_cpu_cache_table = (unsigned long *) malloc(sizeof(unsigned long) * h_cpu_cache_table_size);
-        // for(unsigned int i = 0; i < this->h_cpu_cache_table_size; ++i){
-        //     this->h_cpu_cache_table[i] = allocateCPUPinedMem(this->agile_buffer_dev, this->h_cpu_cache_data_ptr[i], 1024 * 1024 * 4);
-        //     cuda_err_chk(cudaHostRegister(this->h_cpu_cache_data_ptr[i], 1024 * 1024 * 4, cudaHostRegisterMapped));
-        // }
+    //     this->h_cpu_cache->physical_addr = getCPUPinnedMem(this->h_cpu_cache->data, this->h_cpu_cache->getRequiredMemSize());
+    //     printf("cpu cache physical addr: %lx ptr: %p\n", this->h_cpu_cache->physical_addr, this->h_cpu_cache->data);
 
-        this->h_cpu_cache->physical_addr = getCPUPinnedMem(this->h_cpu_cache->data, this->h_cpu_cache->getRequiredMemSize());
-        printf("cpu cache physical addr: %lx ptr: %p\n", this->h_cpu_cache->physical_addr, this->h_cpu_cache->data);
-        // cuda_err_chk(cudaHostRegister(this->h_cpu_cache->data, 1024, cudaHostRegisterMapped));
-        // cuda_err_chk(cudaHostRegister(this->h_cpu_cache->data, this->h_cpu_cache->getRequiredMemSize(), cudaHostRegisterMapped));
-
-        // cuda_err_chk(cudaMalloc(&(this->h_cpu_cache->phy_addr_table), sizeof(unsigned long) * this->h_cpu_cache_table_size));
-        // cuda_err_chk(cudaMalloc(&(this->h_cpu_cache->data), sizeof(void *) * this->h_cpu_cache_table_size));
-        // init CPU Cache
-        // cuda_err_chk(cudaMemcpy(this->h_cpu_cache->phy_addr_table, this->h_cpu_cache_table, sizeof(unsigned long) * this->h_cpu_cache_table_size, cudaMemcpyHostToDevice));
-        // cuda_err_chk(cudaMemcpy(this->h_cpu_cache->data, this->h_cpu_cache_data_ptr, sizeof(void *), cudaMemcpyHostToDevice));
-        // cuda_err_chk(cudaMemcpy(this->d_cpu_cache, this->h_cpu_cache, sizeof(CPUCacheImpl), cudaMemcpyHostToDevice));
-
-    }
+    // }
 
     __host__ void initializeAgile(){
         // allocate memory
         std::cout << "allocating GPU pinned memory\n";
         unsigned long gpu_physical_addr = allocateGPUPinedMem(this->gpu_device_idx, this->getGPUPinnedMemSize(), this->d_gpu_ptr, this->h_gpu_ptr);
         
-        std::cout << "allocating CPU pinned memory\n";
-        this->initCPUCache();
+        // std::cout << "allocating CPU pinned memory\n";
+        // this->initCPUCache();
         // assign pointers
-        
         
         /*******copy to device******/
         
@@ -646,7 +678,6 @@ public:
         for(unsigned int i = 0; i < nvme_dev.size(); ++i){
             this->h_dev[dev_id] = AgileNvmeDev(nvme_dev[i].queue_num, nvme_dev[i].queue_depth);
             this->h_dev[dev_id].pairs = (AgileQueuePair *) malloc(sizeof(AgileQueuePair) * nvme_dev[i].queue_num);
-            // std::cout << "nvme_dev[i].queue_num " << nvme_dev[i].queue_num << endl;
             for(int j = 0; j < nvme_dev[i].queue_num; ++j){
                 unsigned long sq_offset = gpu_offset;
                 unsigned long cq_offset = sq_offset + 64 * nvme_dev[i].queue_depth;
@@ -753,9 +784,9 @@ public:
 
         // }
         // close(this->agile_buffer_dev);
-        cuda_err_chk(cudaHostUnregister(this->cpu_mem_ptr));
-        munmap(this->cpu_mem_ptr, CPU_MEM_SIZE);
-        close(this->cpu_mem_fd);
+        // cuda_err_chk(cudaHostUnregister(this->cpu_mem_ptr));
+        // munmap(this->cpu_mem_ptr, CPU_MEM_SIZE);
+        // close(this->cpu_mem_fd);
     }
 
     __host__ void setShareTable(ShareTableImpl & write_table){
@@ -772,8 +803,13 @@ public:
         assert(this->block_size == cpu_cache.slot_size);
     }
 
+    [[deprecated]]
     __host__ void addNvmeDev(std::string dev, unsigned int bar_size, SSDBLK_TYPE block_offset, unsigned int queue_num, unsigned int queue_depth){
-        this->nvme_dev.emplace_back(dev, bar_size, queue_num, queue_depth, block_offset, this->agile_buffer_dev);
+        this->nvme_dev.emplace_back(dev, bar_size, queue_num, queue_depth, block_offset);
+    }
+
+    __host__ void addNvmeDev(std::string dev, SSDBLK_TYPE block_offset, unsigned int queue_num, unsigned int queue_depth){
+        this->nvme_dev.push_back(NvmeConfig(dev, block_offset, queue_num, queue_depth));
     }
 
     __host__ void closeNvme(){
@@ -796,9 +832,6 @@ public:
         return required_pinned_gpu_mem_size;
     }
 
-    // __host__ unsigned int getCPUPinnedMemSize(){
-    //     return this->h_cpu_cache->getRequiredMemSize();
-    // }
 
     __host__ AgileCtrl<GPUCacheImpl, CPUCacheImpl, ShareTableImpl> * getAgileCtrlDevicePtr(){
         return this->d_ctrl;
@@ -848,7 +881,15 @@ public:
         start_agile_cq_service<<<blocks, min(threads, 1024), 0, this->agile_cq>>>(this->d_ctrl);
         usleep(100);
     }
+    
+    __host__ void startAgile(unsigned int griddim, unsigned int blockdim){
+        cuda_err_chk(cudaStreamCreateWithFlags(&(this->agile_cq), cudaStreamNonBlocking));
+        *((volatile unsigned int*)this->h_ctrl->stop_signal) = 0;
+        std::cout << "agile blocks: " << griddim << " threads: " << blockdim << std::endl;
+        start_agile_cq_service<<<griddim, blockdim, 0, this->agile_cq>>>(this->d_ctrl);
+        usleep(100);
 
+    }
     __host__ void stopAgile(){
         *((volatile unsigned int*)this->h_ctrl->stop_signal) = 1;
         cuda_err_chk(cudaStreamSynchronize(this->agile_cq));
@@ -856,6 +897,19 @@ public:
 #if ENABLE_LOGGING
         this->monitoring();
 #endif
+    }
+
+
+    template <typename Func>
+    __host__ int queryOccupancy(Func kernel, unsigned int blockSize, unsigned int dynamicSmemSize) {
+       int numBlocksPerSM = 0;
+        cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+            &numBlocksPerSM,
+            kernel,
+            blockSize, // threads per block
+            dynamicSmemSize    // dynamic shared memory
+        );
+        return numBlocksPerSM;
     }
 
     template <typename Func, typename... Args>

@@ -1,6 +1,6 @@
 #ifndef AGILE_BUF
 #define AGILE_BUF
-#include "agile_helpper.h"
+#include "agile_helper.h"
 // #include "agile_ctrl.h"
 
 #define AGILE_BUF_EMPTY  0

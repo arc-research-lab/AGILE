@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[]) {
 
-    NVMeDevice nvme_device("/dev/AGILE-NVMe-0000:98:00.0", 256);
+    NVMeDevice nvme_device("/dev/AGILE-NVMe-0000:4b:00.0", 256);
 
     nvme_device.resetController();
     nvme_device.registerAdminQueues();

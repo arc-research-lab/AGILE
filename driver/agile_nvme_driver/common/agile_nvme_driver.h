@@ -30,7 +30,5 @@ struct dma_buffer {
 
 // Test IOCTL commands
 #define IOCTL_QUERY_MMAP_FLAG           _IOR    (AGILE_MAGIC, 0xFFFF0005, uint32_t *)
-// #define INIT_GLOBAL_BUFFER           _IOW    (AGILE_MAGIC, 0x04, uint32_t *)
-// #define READ_GLOBAL_BUFFER           _IOW    (AGILE_MAGIC, 0x05, uint32_t *)
 
 #endif

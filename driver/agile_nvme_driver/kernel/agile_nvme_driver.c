@@ -143,7 +143,7 @@ static int fp_mmap(struct file *filp, struct vm_area_struct *vma)
                 return -EINVAL;
             }
             // Optional: make mapping non-cached for MMIO
-            vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+            // vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
             pr_info("%s: remapping BAR at addr=0x%llx size=%llu\n",
                     DRIVER_NAME, (unsigned long long)ndev->bar.phys_addr, (unsigned long long)ndev->bar.size);
             return remap_pfn_range(vma,
@@ -163,7 +163,7 @@ static int fp_mmap(struct file *filp, struct vm_area_struct *vma)
                 return -EINVAL;
             }
             // Optional: make mapping non-cached for MMIO
-            vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+            // vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
             pr_info("%s: remapping DMA buffer at addr=0x%llx size=%u\n",
                     DRIVER_NAME, (unsigned long long)ndev->dma_buf.addr, ndev->dma_buf.size);
@@ -188,6 +188,7 @@ static const struct file_operations nvme_fops = {
 static const struct pci_device_id nvme_ids[] = {
     { PCI_DEVICE(0x0c51, 0x0110) }, // Replace with real IDs as needed
     { PCI_DEVICE(0x144d, 0xa80c) },
+    { PCI_DEVICE(0x144d, 0xa824) },
     { 0, }
 };
 

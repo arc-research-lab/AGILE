@@ -1,6 +1,6 @@
 #ifndef AIGLE_LOCK
 #define AIGLE_LOCK
-#include "agile_helpper.h"
+#include "agile_helper.h"
 
 #define DEBUG LOCK_DEBUG
 class AgileLock;

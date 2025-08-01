@@ -1,6 +1,6 @@
 #ifndef AGILE_BUF_SHARED
 #define AGILE_BUF_SHARED
-#include "agile_helpper.h"
+#include "agile_helper.h"
 #include "agile_buf.h"
 #include <cooperative_groups.h>
 namespace cg = cooperative_groups;

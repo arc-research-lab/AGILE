@@ -1,5 +1,5 @@
 nv-p2p-dummy.o: \
- /home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/nv-p2p-dummy.c \
+ /home/zhuoping/workspace/AGILE/driver/gdrcopy/src/gdrdrv/nv-p2p-dummy.c \
  include/linux/kconfig.h include/generated/autoconf.h \
  include/linux/compiler_types.h include/linux/compiler_attributes.h \
  include/linux/compiler-gcc.h include/generated/uapi/linux/version.h \

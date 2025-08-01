@@ -1,7 +1,7 @@
 #ifndef AGILE_ARRAY_WARP_H
 #define AGILE_ARRAY_WARP_H
 
-#include "agile_helpper.h"
+#include "agile_helper.h"
 
 template <typename GPUCacheImpl, typename CPUCacheImpl, typename ShareTableImpl>
 class AgileCtrl;

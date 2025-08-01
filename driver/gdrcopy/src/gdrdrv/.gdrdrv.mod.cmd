@@ -1,1 +1,1 @@
-cmd_/home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/gdrdrv.mod := { echo  /home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/gdrdrv.o;  echo; } > /home/zhuoping/workspace/Agile/driver/gdrcopy/src/gdrdrv/gdrdrv.mod
+cmd_/home/zhuoping/workspace/AGILE/driver/gdrcopy/src/gdrdrv/gdrdrv.mod := { echo  /home/zhuoping/workspace/AGILE/driver/gdrcopy/src/gdrdrv/gdrdrv.o;  echo; } > /home/zhuoping/workspace/AGILE/driver/gdrcopy/src/gdrdrv/gdrdrv.mod

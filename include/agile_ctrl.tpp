@@ -1,7 +1,7 @@
 #include "agile_ctrl.h"
 #include "agile_swcache.h"
 #include "agile_cache_hierarchy.h"
-#include "agile_helpper.h"
+#include "agile_helper.h"
 #include "agile_shared_table_buf.h"
 
 __device__ void AgileCtrlBase::issueReadNvme2GPU(NVME_DEV_IDX_TYPE dev_idx, SSDBLK_TYPE ssd_blk_idx, unsigned int cache_idx, AgileLockChain * chain){
