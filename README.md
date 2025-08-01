@@ -30,6 +30,8 @@ series = {Supercomputing '25}
   </picture>
 </p>
 
+## 🎉 AGILE tutorial examples are keeping updating now! Check out at [./toturial](./toturial)
+
 ## Installation
 
 AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
