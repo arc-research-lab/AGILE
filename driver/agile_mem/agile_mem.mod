@@ -1,2 +1,2 @@
-/home/zhuoping/workspace/Agile/driver/agile_mem/agile_mem.o
+/home/zhuoping/workspace/AGILE/driver/agile_mem/agile_mem.o
 

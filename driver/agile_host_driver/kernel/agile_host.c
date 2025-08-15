@@ -6,8 +6,15 @@
 #include <asm/io.h>
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
+#include <linux/dmaengine.h>
+#include <linux/delay.h>
+#include <linux/list.h>
 
 #include "../common/agile_host_driver.h"
+
+
+#define ALLOC_KMALLOC 1
+
 
 #define DEVICE_NAME "AGILE-host"
 #define CLASS_NAME  "AGILE Host Class"
@@ -18,6 +25,32 @@ static dev_t dev_num;
 static struct cdev  host_cdev;
 static struct class *host_class;
 
+static uint32_t total_dma_channels = 0;
+
+struct dma_callback_param {
+    struct completion *completion;
+    bool *idle; // Indicates if the channel is idle
+    unsigned int identifier; // command identifier
+    unsigned int pid;       // process identifier
+    dma_addr_t dma_src;
+    dma_addr_t dma_dst;
+    uint32_t size;
+    struct dma_chan *chan;
+    uint32_t *cpl_ptr;
+};
+
+struct dma_chan_list {
+    bool idle; // Indicates if the channel is idle
+
+    struct dma_chan *chan;
+    struct completion completion; // Completion for this channel
+    struct dma_callback_param cb_param; // Callback parameters
+
+    struct list_head list;
+};
+
+static LIST_HEAD(chan_head);
+
 struct file_var {
     struct cache_buffer target_buffer;
 };
@@ -25,15 +58,84 @@ struct file_var {
 static struct file_var *file_data;
 
 static int fp_open(struct inode *inodep, struct file *filep) {
+
+    dma_cap_mask_t mask;
+    struct dma_chan *chan;
+    bool chan_available = true;
+    struct dma_chan_list *new_node;
+
     file_data = kmalloc(sizeof(struct file_var), GFP_KERNEL);
     if (!file_data) {
         return -ENOMEM;
     }
     filep->private_data = file_data;
+    pr_info("%s: Device opened\n", DEVICE_NAME);
+
+    
+    new_node = vmalloc(sizeof(struct dma_chan_list));
+    if (!new_node) {
+        pr_err("%s: Failed to allocate memory for new channel node\n", DEVICE_NAME);
+        return -ENOMEM;
+    }
+    INIT_LIST_HEAD(&new_node->list);
+
+    dma_cap_zero(mask);
+    dma_cap_set(DMA_MEMCPY, mask);
+    chan = dma_request_channel(mask, NULL, NULL);
+    if (!chan) {
+        chan_available = false;
+        pr_err("%s: No DMA channel available\n", DEVICE_NAME);
+        return -ENODEV;
+    } else {
+        total_dma_channels++;
+        pr_info("%s: Allocated DMA channel %d: %s\n", DEVICE_NAME, total_dma_channels, dev_name(chan->device->dev));
+    }
+    new_node->idle = true; // Initially, the channel is idle
+    new_node->chan = chan;
+    list_add_tail(&new_node->list, &chan_head);
+
+    while(chan_available){
+        dma_cap_zero(mask);
+        dma_cap_set(DMA_MEMCPY, mask);
+        chan = dma_request_channel(mask, NULL, NULL);
+        if (!chan) {
+            chan_available = false;
+            break;
+        }
+        // pr_info("%s: Allocated DMA channel %d: %s\n", DEVICE_NAME, total_dma_channels, dev_name(chan->device->dev));
+        new_node = vmalloc(sizeof(struct dma_chan_list));
+        if (!new_node) {
+            pr_err("%s: Failed to allocate memory for new channel node\n", DEVICE_NAME);
+            return -ENOMEM;
+        }
+        // spin_lock_init(&new_node->lock);
+        new_node->idle = true; // Initially, the channel is idle
+        new_node->chan = chan;
+        list_add_tail(&new_node->list, &chan_head);
+        total_dma_channels++;
+    }
+
+    pr_info("%s: Total DMA channels allocated: %d\n", DEVICE_NAME, total_dma_channels);
+
+
     return 0;
 }
 
 static int fp_release(struct inode *inodep, struct file *filep) {
+
+    struct dma_chan_list *curr_node, *tmp;
+
+    list_for_each_entry_safe(curr_node, tmp, &chan_head, list) {
+        list_del(&curr_node->list);
+        dma_release_channel(curr_node->chan);
+        vfree(curr_node);
+    }
+   
+    // dma_idx = 0;
+
+    pr_info("%s: Released all %d DMA channels\n", DEVICE_NAME, total_dma_channels);
+    total_dma_channels = 0;
+
     kfree(file_data);
     return 0;
 }
@@ -63,6 +165,30 @@ static int fp_mmap(struct file *filep, struct vm_area_struct *vma) {
     return 0;
 }
 
+static void dma_callback(void *param)
+{
+    struct dma_callback_param *cb_param = param;
+    // struct task_struct *task;
+    // unsigned long flags;
+
+    complete(cb_param->completion);
+    // For demonstration, we will just simulate a signal to the process
+    // rcu_read_lock();
+    // if(*(cb_param->cpl) != 0){
+    //     pr_err("DMA transfer failed for PID %d with identifier %u cpl not initialized: %d\n", cb_param->pid, cb_param->identifier, *(cb_param->cpl));
+    // }else{
+    //     // *(cb_param->cpl) = 1;
+    // }
+    // *(cb_param->idle) = true; // Mark the channel as idle again
+    // spin_unlock_irqrestore(cb_param->lock, flags);
+    // rcu_read_unlock();
+    *(cb_param->cpl_ptr) = 1;
+
+    dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_src, cb_param->size, DMA_TO_DEVICE);
+    dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_dst, cb_param->size, DMA_FROM_DEVICE);
+    pr_info("DMA transfer completed for PID %d with identifier %u\n", cb_param->pid, cb_param->identifier);
+}
+
 static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
     struct cache_buffer *cb = &file_data->target_buffer;
     switch(cmd){
@@ -70,13 +196,22 @@ static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
             if (copy_from_user(cb, (struct cache_buffer *)arg, sizeof(*cb))) {
                 return -EFAULT;
             }
-            // cb->vaddr_krnl = kmalloc(cb->size, GFP_KERNEL); // 4MB Max
-            cb->vaddr_krnl = (void *) __get_free_pages(GFP_KERNEL, get_order(cb->size)); // 4MB Max
-            // dma_alloc_coherent(NULL, cb->size, &cb->addr, GFP_KERNEL); // error occur
+#ifdef ALLOC_KMALLOC
+            cb->vaddr_krnl = kmalloc(cb->size, GFP_KERNEL | GFP_DMA); // 4MB Max
             if (!cb->vaddr_krnl) {
                 pr_err("Failed to allocate kernel memory\n");
                 return -ENOMEM;
             }
+#elif defined(ALLOC_GET_FREE_PAGES)
+            cb->vaddr_krnl = (void *) __get_free_pages(GFP_KERNEL, get_order(cb->size)); // 4MB Max
+            if (!cb->vaddr_krnl) {
+                pr_err("Failed to allocate kernel memory\n");
+                return -ENOMEM;
+            }
+#else
+            dma_alloc_coherent(NULL, cb->size, &cb->addr, GFP_KERNEL); // error occur
+#endif
+            
             cb->addr = virt_to_phys(cb->vaddr_krnl);
             if (copy_to_user((struct cache_buffer *)arg, cb, sizeof(*cb))) {
                 // dma_free_coherent(NULL, cb->size, cb->vaddr_krnl, cb->addr);
@@ -95,12 +230,125 @@ static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
             break;
         case IOCTL_FREE_CACHE_BUFFER:
             if (copy_from_user(cb, (struct cache_buffer *)arg, sizeof(*cb))) {
+                pr_err("%s: Failed to copy cache buffer from user\n", DEVICE_NAME);
                 return -EFAULT;
             }
+#ifdef ALLOC_KMALLOC
+            if (!cb->vaddr_krnl) {
+                pr_err("No kernel memory allocated to free\n");
+                return -EINVAL;
+            }
             kfree(cb->vaddr_krnl);
-            break;
-        default:            
-            pr_err("Unsupported IOCTL command: %u\n", cmd);
+#elif defined(ALLOC_GET_FREE_PAGES)
+            if (!cb->vaddr_krnl) {
+                pr_err("No kernel memory allocated to free\n");
+                return -EINVAL;
+            }
+            free_pages((unsigned long)cb->vaddr_krnl, get_order(cb->size));
+#else
+            if (!cb->vaddr_krnl) {
+                pr_err("No kernel memory allocated to free\n");
+                return -EINVAL;
+            }
+            dma_free_coherent(NULL, cb->size, cb->vaddr_krnl, cb->addr);
+#endif
+            
+            return 0;
+        case IOCTL_SUBMIT_DMA_CMD:
+        {
+            struct dma_command dma_cmd;
+            struct dma_chan_list *curr_node;
+            struct dma_async_tx_descriptor *tx = NULL;
+            dma_addr_t dma_src, dma_dst;
+            dma_cookie_t cookie;
+            enum dma_ctrl_flags flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT;
+            bool find_dma_channel = false;
+
+            pr_info("dma_test: Received DMA command from user space\n");
+
+            // Copy DMA command from user space
+            if (copy_from_user(&dma_cmd, (struct dma_command *)arg, sizeof(dma_cmd))) {
+                pr_err("Failed to copy data from user\n");
+                return -EFAULT;
+            }
+
+
+            // Find an available DMA channel
+            FIND_DMA_CHANNEL:
+            list_for_each_entry(curr_node, &chan_head, list) {
+                pr_info("Checking DMA Channel: %s\n", dev_name(curr_node->chan->device->dev));
+                // spin_lock_irqsave(&curr_node->lock, flags);
+                if(curr_node->idle){
+                    curr_node->idle = false; // Mark the channel as busy
+                    // spin_unlock_irqrestore(&curr_node->lock, flags);
+                    find_dma_channel = true;
+                    break;
+                }
+                // spin_unlock_irqrestore(&curr_node->lock, flags);
+            }
+            if (!find_dma_channel) {
+                pr_info("No idle DMA channel found, retrying...\n");
+                goto FIND_DMA_CHANNEL; // If no idle channel found, try again
+            }
+
+            // Map the contigous buffers to DMA addresses
+            dma_src = dma_map_single(curr_node->chan->device->dev, dma_cmd.src_vaddr_krnl, dma_cmd.size, DMA_TO_DEVICE);
+            dma_dst = dma_map_single(curr_node->chan->device->dev, dma_cmd.dst_vaddr_krnl, dma_cmd.size, DMA_FROM_DEVICE);
+            if (dma_mapping_error(curr_node->chan->device->dev, dma_src) ||
+                dma_mapping_error(curr_node->chan->device->dev, dma_dst)) {
+                pr_err("dma_test: DMA mapping failed\n");
+                return -EINVAL;
+            }
+
+            pr_info("dma_test: src_buf mapped to %llx physical addr: %llx, dst_buf mapped to %llx physical addr: %llx\n", dma_src, virt_to_phys(dma_cmd.src_vaddr_krnl), dma_dst, virt_to_phys(dma_cmd.dst_vaddr_krnl));
+
+            // Prepare the DMA transaction
+            tx = dmaengine_prep_dma_memcpy(curr_node->chan, dma_dst, dma_src, dma_cmd.size, flags);
+            if (!tx) {
+                pr_err("dma_test: Failed to prepare DMA memcpy\n");
+                dma_unmap_single(curr_node->chan->device->dev, dma_src, dma_cmd.size, DMA_TO_DEVICE);
+                dma_unmap_single(curr_node->chan->device->dev, dma_dst, dma_cmd.size, DMA_FROM_DEVICE);
+                return -EINVAL;
+            }
+
+            // Initialize completion
+            init_completion(&curr_node->completion);
+
+            // Set callback parameters
+            curr_node->cb_param.completion = &curr_node->completion;
+            curr_node->cb_param.identifier = dma_cmd.identifier;
+            curr_node->cb_param.pid = dma_cmd.pid;
+            curr_node->cb_param.idle = &curr_node->idle; // Pass the idle flag
+            curr_node->cb_param.dma_src = dma_src;
+            curr_node->cb_param.dma_dst = dma_dst;
+            curr_node->cb_param.chan = curr_node->chan;
+            curr_node->cb_param.cpl_ptr = dma_cmd.cpl_ptr;
+
+            tx->callback_param = &curr_node->cb_param;
+            tx->callback = dma_callback;
+            
+            // Submit the transaction
+            cookie = tx->tx_submit(tx);
+            if (dma_submit_error(cookie)) {
+                pr_err("dma_test: Failed to do tx_submit\n");
+                dma_unmap_single(curr_node->chan->device->dev, dma_src, dma_cmd.size, DMA_TO_DEVICE);
+                dma_unmap_single(curr_node->chan->device->dev, dma_dst, dma_cmd.size, DMA_FROM_DEVICE);
+                return -EINVAL;
+            }
+
+            // Trigger the DMA transaction
+            dma_async_issue_pending(curr_node->chan);
+
+            pr_info("Submitting DMA command: src_addr=%llx, dst_addr=%llx, size=%u, direction=%u, identifier=%u, pid=%u\n",
+                dma_cmd.src_addr, dma_cmd.dst_addr, dma_cmd.size,
+                dma_cmd.direction, dma_cmd.identifier, dma_cmd.pid);
+
+
+            return 0;
+
+        }
+        default:
+            pr_err("%s: Unsupported IOCTL command: %u\n", DEVICE_NAME, cmd);
             return -EINVAL;
     }
     return 0;
@@ -115,6 +363,10 @@ static struct file_operations fops = {
 
 static int __init agile_host_init(void) {
     int ret;
+
+    dma_cap_mask_t mask;
+    struct dma_chan *chan;
+    bool chan_available = true;
 
     // 1. Allocate a device number (major/minor)
     ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICE_NAME);
@@ -150,6 +402,21 @@ static int __init agile_host_init(void) {
 
     pr_info("%s: registered with major=%d minor=%d\n", DEVICE_NAME, MAJOR(dev_num), MINOR(dev_num));
 
+    dma_cap_zero(mask);
+    dma_cap_set(DMA_MEMCPY, mask);
+    chan = dma_request_channel(mask, NULL, NULL);
+    if (!chan) {
+        chan_available = false;
+        pr_err("%s: No DMA channel available\n", DEVICE_NAME);
+        device_destroy(host_class, dev_num);
+        class_destroy(host_class);
+        cdev_del(&host_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        pr_info("%s: unregistered\n", DEVICE_NAME);
+        return -ENODEV;
+    }
+    pr_info("%s: DMA channel is available: %s\n", DEVICE_NAME, dev_name(chan->device->dev));
+    dma_release_channel(chan);
     return 0;
 }
 
