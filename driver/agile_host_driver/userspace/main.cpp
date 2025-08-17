@@ -7,6 +7,8 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
 #include "../common/agile_host_driver.h"
 
@@ -55,6 +57,27 @@ int main(){
         ((int*)dma_dst.vaddr_user)[i] = 0;
     }
 
+
+    int epfd = epoll_create1(EPOLL_CLOEXEC);
+    if (epfd == -1) { perror("epoll_create1"); return 1; }
+
+    int efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (efd == -1) { perror("eventfd"); return 1; }
+
+    // Initialize epoll_event in C++ style (no designated initializers)
+    epoll_event ev{};
+    ev.events = EPOLLIN;            // add EPOLLET if you want edge-triggered
+    ev.data.fd = efd;
+
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, efd, &ev) == -1) {
+        perror("epoll_ctl ADD efd");
+        return 1;
+    }
+
+    constexpr int MAX_EVENTS = 16;
+    epoll_event events[MAX_EVENTS];
+
+
     printf("Initializing DMA buffers\n");
 
 
@@ -69,6 +92,7 @@ int main(){
     cmd.dst_vaddr_krnl = dma_dst.vaddr_krnl;
     cmd.pid = getpid();
     cmd.cpl_ptr = (volatile uint32_t *)dma_cpl.vaddr_krnl;
+    cmd.eventfd = efd;
 
     // Initialize the completion flag to 0
 
@@ -79,11 +103,17 @@ int main(){
         perror("ioctl: submit DMA command");
     }
 
-    while (*completion_flag == 0) {
-        usleep(1);
-    }
+    // while (*completion_flag == 0) {
+    //     usleep(1);
+    // }
+    int n = epoll_wait(epfd, events, MAX_EVENTS, -1);
+    uint64_t val = 0;
+    read(efd, &val, sizeof(val));
 
-    printf("DMA transfer completed, checking %d\n", *completion_flag);
+    printf("DMA transfer completed, checking %d, epoll returns: %d, val: %ld\n", *completion_flag, n, val);
+    // n = epoll_wait(epfd, events, MAX_EVENTS, -1);
+    // read(efd, &val, sizeof(val));
+    // printf("DMA transfer completed, checking %d, epoll returns: %d, val: %ld\n", *completion_flag, n, val);
 
     for(uint32_t i = 0; i < 10; ++i){
         printf("src[%d] = %d, dst[%d] = %d\n", i, ((int*)dma_src.vaddr_user)[i], i, ((int*)dma_dst.vaddr_user)[i]);

@@ -9,6 +9,8 @@
 #include <linux/dmaengine.h>
 #include <linux/delay.h>
 #include <linux/list.h>
+#include <linux/eventfd.h>
+
 
 #include "../common/agile_host_driver.h"
 
@@ -36,7 +38,9 @@ struct dma_callback_param {
     dma_addr_t dma_dst;
     uint32_t size;
     struct dma_chan *chan;
-    uint32_t *cpl_ptr;
+    volatile uint32_t *cpl_ptr;
+    struct eventfd_ctx *efd;
+    int eventfd;
 };
 
 struct dma_chan_list {
@@ -168,6 +172,7 @@ static int fp_mmap(struct file *filep, struct vm_area_struct *vma) {
 static void dma_callback(void *param)
 {
     struct dma_callback_param *cb_param = param;
+    struct eventfd_ctx *efd = cb_param->efd;
     // struct task_struct *task;
     // unsigned long flags;
 
@@ -182,10 +187,19 @@ static void dma_callback(void *param)
     // *(cb_param->idle) = true; // Mark the channel as idle again
     // spin_unlock_irqrestore(cb_param->lock, flags);
     // rcu_read_unlock();
+    
     *(cb_param->cpl_ptr) = 1;
+    
+    if (efd != -EBADF && efd != NULL) {
+        pr_info("Got eventfd context: %p fd: %d\n", efd, cb_param->eventfd);
+        eventfd_signal(efd, 1);
+        // eventfd_signal(efd, 1);
+    }else{
+        pr_err("Failed to get eventfd context\n");
+    }
 
-    dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_src, cb_param->size, DMA_TO_DEVICE);
-    dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_dst, cb_param->size, DMA_FROM_DEVICE);
+//dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_src, cb_param->size, DMA_TO_DEVICE);
+//    dma_unmap_single(cb_param->chan->device->dev, cb_param->dma_dst, cb_param->size, DMA_FROM_DEVICE);
     pr_info("DMA transfer completed for PID %d with identifier %u\n", cb_param->pid, cb_param->identifier);
 }
 
@@ -323,6 +337,8 @@ static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
             curr_node->cb_param.dma_dst = dma_dst;
             curr_node->cb_param.chan = curr_node->chan;
             curr_node->cb_param.cpl_ptr = dma_cmd.cpl_ptr;
+            curr_node->cb_param.eventfd = dma_cmd.eventfd;
+            curr_node->cb_param.efd = eventfd_ctx_fdget(dma_cmd.eventfd);
 
             tx->callback_param = &curr_node->cb_param;
             tx->callback = dma_callback;
