@@ -76,11 +76,11 @@ We will keep updating AGILE with more features, and you are more than welcome to
 - [x] Avoid using /dev/mem when accessing PCIe BAR.
 - [x] Avoid using /etc/default/grub to allocate contiguous buffers.
 - [x] Support for Docker container.
+- [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Tutorial examples.
 - [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
 - [ ] Update the benchmarking code using AGILE NVMe driver.
 - [ ] Provide more software cache policies.
-- [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Support for multi-GPU-multi-SSD.
 
 
