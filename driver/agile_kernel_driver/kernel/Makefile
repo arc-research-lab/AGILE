@@ -1,4 +1,4 @@
-obj-m += agile_host.o
+obj-m += agile_kernel.o
 all:
 	make -C /lib/modules/`uname -r`/build M=$(PWD) modules
 clean:

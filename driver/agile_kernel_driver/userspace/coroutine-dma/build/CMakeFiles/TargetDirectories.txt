@@ -1,0 +1,3 @@
+/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/build/CMakeFiles/app.dir
+/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/build/CMakeFiles/edit_cache.dir
+/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/build/CMakeFiles/rebuild_cache.dir

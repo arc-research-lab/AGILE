@@ -1,0 +1,1 @@
+-I"/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/common" -I/home/zhuoping/workspace/AGILE/driver/gdrcopy/include -isystem "/usr/local/cuda-12.8/targets/x86_64-linux/include"

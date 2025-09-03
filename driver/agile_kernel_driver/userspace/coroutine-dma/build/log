@@ -1,0 +1,11 @@
+GPU id:0; name: NVIDIA RTX 5000 Ada Generation; Bus id: 0000:17:00
+selecting device 0
+physical address: 21d000400000
+physical continue: 1
+table size: 32768
+23:23:32.899245 [T-140467313467392] INFO (/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/src/main.cu:56)  : main starting...
+23:23:33.281255 [T-140467067936768] INFO (/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/src/agile_driver.h:384)  : start working on CPU 12
+23:23:33.281310 [T-140467059544064] INFO (/home/zhuoping/workspace/linux-kernel/linux-kernel/agile_kernel_driver/userspace/coroutine-dma/src/agile_dma_service.h:329)  : start monitoring on CPU 46
+Total time: 458789826 nanoseconds
+Total data transferred: 2.68435e+08 Bytes
+Bandwidth: 0.585095 GB/s
