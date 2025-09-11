@@ -78,7 +78,7 @@ We will keep updating AGILE with more features, and you are more than welcome to
 - [x] Avoid using /etc/default/grub to allocate contiguous buffers for NVMe admin queues.
 - [x] Support for Docker container.
 - [x] Kernel module to pin and expose GPU's HBM to user and kernel space. 
-- [ ] Avoid relying on GDRCopy to expose GPU's HBM to user space.
+- [ ] Replace GDRCopy with AGILE kernel module.
 - [ ] Optimizing DMA performance between GPU's HBM and CPU's DRAM.
 - [ ] Include CPU DRAM as an additional level of software cache.
 - [ ] Tutorial examples.
