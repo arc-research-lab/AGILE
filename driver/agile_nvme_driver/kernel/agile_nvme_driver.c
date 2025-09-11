@@ -189,6 +189,7 @@ static const struct pci_device_id nvme_ids[] = {
     { PCI_DEVICE(0x0c51, 0x0110) }, // Replace with real IDs as needed
     { PCI_DEVICE(0x144d, 0xa80c) },
     { PCI_DEVICE(0x144d, 0xa824) },
+    { PCI_DEVICE_CLASS(0x010802, 0xffffff) },
     { 0, }
 };
 
