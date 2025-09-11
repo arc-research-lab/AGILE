@@ -42,6 +42,7 @@ To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver
 
 AGILE relies on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
 
+Disable IOMMU in `/etc/default/grub` by adding `intel_iommu=off` flag to `GRUB_CMDLINE_LINUX_DEFAULT`. Then, update grub (`sudo update-grub`) and reboot (`sudo reboot`) the machine.
 
 ## Experiments
 AGILE has been evaluated on a Dell R750 server running Ubuntu 20.04, equipped with an Nvidia RTX 5000 Ada GPU, a Dell Ent NVMe AGN MU AIC 1.6TB SSD, and two Samsung 990 PRO 1TB SSDs. The Nvidia Driver version is 550.54, and the CUDA version is 12.8.
@@ -77,6 +78,7 @@ We will keep updating AGILE with more features, and you are more than welcome to
 - [x] Avoid using /etc/default/grub to allocate contiguous buffers.
 - [x] Support for Docker container.
 - [ ] Include CPU DRAM as an additional level of software cache.
+- [ ] Avoid relying on GDRCopy.
 - [ ] Tutorial examples.
 - [ ] Add documentation for AGILE (APIs, customizing software-cache policy, etc.)
 - [ ] Update the benchmarking code using AGILE NVMe driver.
