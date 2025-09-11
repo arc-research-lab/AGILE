@@ -75,7 +75,7 @@ For setting up the baseline BaM, please refer to [https://github.com/ZaidQureshi
 We will keep updating AGILE with more features, and you are more than welcome to request more functionalities. Currently, we have the following plans for improving AGILE:
 
 - [x] Avoid using /dev/mem when accessing PCIe BAR.
-- [x] Avoid using /etc/default/grub to allocate contiguous buffers.
+- [x] Avoid using /etc/default/grub to allocate contiguous buffers for NVMe admin queues.
 - [x] Support for Docker container.
 - [ ] Avoid relying on GDRCopy to expose GPU's HBM to user space.
 - [ ] Optimizing DMA performance between GPU's HBM and CPU's DRAM.
