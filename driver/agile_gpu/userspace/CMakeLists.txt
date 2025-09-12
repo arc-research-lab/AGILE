@@ -26,7 +26,7 @@ add_executable(app
 
 # # Includes
 target_include_directories(app PRIVATE
-  /home/zhuoping/workspace/linux-kernel/test-gdrcopy/agile_gpu/common
+  /home/zhuoping/workspace/linux-kernel/linux-kernel/agile_gpu/common
 )
 
 # Compile options

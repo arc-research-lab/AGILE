@@ -23,30 +23,80 @@ MODULE_AUTHOR("Zhuoping Yang");
 MODULE_DESCRIPTION("Pin GPU Memory and map it to user space");
 MODULE_VERSION("1.0");
 
+#define MMAP_GPU 0
+#define MMAP_CPU 1
+
 struct file_vars{
-    struct pin_buffer_params * curr_buf;
+    uint32_t mmap_flag;
+    struct pin_buffer_params * curr_gpu_buf;
+    struct cpu_dram_buf * curr_cpu_buf;
 };
 
 static int fp_mmap(struct file *filp, struct vm_area_struct *vma) {
     struct file_vars *vars = filp->private_data;
-    struct pin_buffer_params * params = vars->curr_buf;
+    
     unsigned long pfn;
     size_t size = vma->vm_end - vma->vm_start;
-    if(!params){
-        pr_err("No pinned buffer info found for this file\n");
-        return -EINVAL;
-    }
-    if(size > params->size){
-        pr_err("Requested mmap size %zu is larger than pinned buffer size %llu\n", size, params->size);
-        return -EINVAL;
-    }
-    pfn = params->phy_addr >> PAGE_SHIFT;
-    pr_info("mmaping phy mem addr=0x%llx size=%zu at user virt addr=0x%lx\n", 
+    if(vars->mmap_flag == MMAP_GPU){
+        struct pin_buffer_params * params = vars->curr_gpu_buf;
+        if(!params){
+            pr_err("No pinned buffer info found for this file\n");
+            return -EINVAL;
+        }
+        if(size > params->size){
+            pr_err("Requested mmap size %zu is larger than pinned buffer size %llu\n", size, params->size);
+            return -EINVAL;
+        }
+        pfn = params->phy_addr >> PAGE_SHIFT;
+        pr_info("mmaping phy mem addr=0x%llx size=%zu at user virt addr=0x%lx\n", 
              params->phy_addr, size, vma->vm_start);
-    if (io_remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
-        pr_err("error in gdrdrv_io_remap_pfn_range()\n");
-        return -EAGAIN;
+        if (io_remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+            pr_err("error in gdrdrv_io_remap_pfn_range()\n");
+            return -EAGAIN;
+        }
+
+
+    } else if (vars->mmap_flag == MMAP_CPU){
+        struct cpu_dram_buf * params = vars->curr_cpu_buf;
+        unsigned long off   = 0;
+        unsigned long uaddr = vma->vm_start;
+        if(!params){
+            pr_err("No pinned buffer info found for this file\n");
+            return -EINVAL;
+        }
+        if(size > params->size){
+            pr_err("Requested mmap size %zu is larger than pinned buffer size %llu\n", size, params->size);
+            return -EINVAL;
+        }
+        vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
+        pfn = params->phy_addr >> PAGE_SHIFT;
+        pr_info("mmaping phy mem addr=0x%llx size=%zu at user virt addr=0x%lx\n", 
+             params->phy_addr, size, vma->vm_start);
+
+        // if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+        //         pr_err("Failed to remap user space to kernel buffer\n");
+        //         return -EAGAIN;
+        // }
+        while (off < size) {
+            struct page *p;
+            int ret;
+            void *kptr = (void *)(params->vaddr_krnl + off);
+
+            p = virt_to_page(kptr);
+
+            if (!p) return -EFAULT;
+
+            ret = vm_insert_page(vma, (uaddr + off), p);
+            if (ret && ret != -EBUSY) return ret;
+
+            off += PAGE_SIZE;
+        }
+
+    } else {
+        pr_err("Unknown Mapping Type\n");
+        return -EINVAL;
     }
+  
     return 0;
 }
 
@@ -59,7 +109,7 @@ long ioctl_pin_gpu_buffer(struct file *file, unsigned int cmd, unsigned long arg
     
     struct nvidia_p2p_page_table *page_table;
     struct file_vars *vars = file->private_data;
-    struct pin_buffer_params * params = vars->curr_buf;
+    struct pin_buffer_params * params = vars->curr_gpu_buf;
     int i = 0;
     if (copy_from_user(params, (struct pin_buffer_params *)arg, sizeof(*params))) {
         return -EACCES;
@@ -92,7 +142,9 @@ long ioctl_pin_gpu_buffer(struct file *file, unsigned int cmd, unsigned long arg
     ((uint32_t *) params->krnl_ptr)[0] = 10086; // test write
     pr_info("The pinned GPU buffer is physically contiguous, phy_addr=0x%llx\n", params->phy_addr);
     params->page_table = page_table;
-    vars->curr_buf = params;
+    vars->curr_gpu_buf = params;
+
+    vars->mmap_flag = MMAP_GPU;
     if (copy_to_user((struct pin_buffer_params *)arg, params, sizeof(*params))) {
         return -EACCES;
     }
@@ -121,6 +173,41 @@ long ioctl_unpin_gpu_buffer(struct file *file, unsigned int cmd, unsigned long a
 }
 
 
+long ioctl_allocate_dram_buffer(struct file *file, unsigned int cmd, unsigned long arg){
+    struct file_vars *vars = file->private_data;
+    struct cpu_dram_buf *buf = vars->curr_cpu_buf;
+    if (copy_from_user(buf, (struct cpu_dram_buf *)arg, sizeof(*buf))) {
+        return -EFAULT;
+    }
+    buf->vaddr_krnl = kmalloc(buf->size, GFP_KERNEL | GFP_DMA);
+    buf->phy_addr = virt_to_phys(buf->vaddr_krnl);
+
+    pr_info("Allocated DRAM buffer: vaddr_krnl=%p, addr: %llx size=%llu\n",
+                buf->vaddr_krnl, buf->phy_addr, buf->size);
+
+    if (copy_to_user((struct cpu_dram_buf *)arg, buf, sizeof(*buf))) {
+        kfree(buf->vaddr_krnl);
+        buf->vaddr_krnl = NULL;
+        buf->phy_addr = 0;
+        buf->size = 0;
+        return -EFAULT;
+    }
+    vars->mmap_flag = MMAP_CPU;
+    return 0;
+}
+
+
+long ioctl_free_dram_buffer(struct file *file, unsigned int cmd, unsigned long arg){
+    struct file_vars *vars = file->private_data;
+    struct cpu_dram_buf *buf = vars->curr_cpu_buf;
+    if (copy_from_user(buf, (struct cpu_dram_buf *)arg, sizeof(*buf))) {
+        return -EFAULT;
+    }
+    kfree(buf->vaddr_krnl);
+    pr_info("Freed DRAM buffer: vaddr_krnl=%p, addr: %llx size=%llu\n",
+                buf->vaddr_krnl, buf->phy_addr, buf->size);
+    return 0;
+}
 
 static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
     switch(cmd){
@@ -128,6 +215,10 @@ static long fp_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
             return ioctl_pin_gpu_buffer(file, cmd, arg);
         case IOCTL_UNPIN_GPU_BUFFER:
             return ioctl_unpin_gpu_buffer(file, cmd, arg);
+        case IOCTL_ALLOCATE_DRAM_BUFFER:
+            return ioctl_allocate_dram_buffer(file, cmd, arg);
+        case IOCTL_FREE_DRAM_BUFFER:
+            return ioctl_free_dram_buffer(file, cmd, arg);
         default:
             return -EINVAL;
     }
@@ -140,12 +231,20 @@ static int fp_open(struct inode *inodep, struct file *filep) {
     if (!vars) {
         return -ENOMEM;
     }
-    vars->curr_buf = kmalloc(sizeof(struct pin_buffer_params), GFP_KERNEL);
-    if (!vars->curr_buf) {
+    vars->curr_gpu_buf = kmalloc(sizeof(struct pin_buffer_params), GFP_KERNEL);
+    if (!vars->curr_gpu_buf) {
         kfree(vars);
         return -ENOMEM;
     }
-    memset(vars->curr_buf, 0, sizeof(struct pin_buffer_params));
+    memset(vars->curr_gpu_buf, 0, sizeof(struct pin_buffer_params));
+
+    vars->curr_cpu_buf = kmalloc(sizeof(struct cpu_dram_buf), GFP_KERNEL);
+    if (!vars->curr_cpu_buf) {
+        kfree(vars->curr_gpu_buf);
+        kfree(vars);
+        return -ENOMEM;
+    }
+
     pr_info("%s Opened\n", DEVICE_NAME);
     filep->private_data = vars;
     return 0;
@@ -155,7 +254,8 @@ static int fp_release(struct inode *inodep, struct file *filep) {
     
     struct file_vars *vars = filep->private_data;
     pr_info("%s Closed\n", DEVICE_NAME);
-    kfree(vars->curr_buf);
+    kfree(vars->curr_gpu_buf);
+    kfree(vars->curr_cpu_buf);
     kfree(vars);
     return 0;
 }

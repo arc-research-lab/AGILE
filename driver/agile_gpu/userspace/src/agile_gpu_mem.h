@@ -80,6 +80,24 @@ public:
         }
     }
 
+    void allocateDramBuf(struct cpu_dram_buf * buf, uint64_t size){
+        buf->size = size;
+        if(ioctl(fd, IOCTL_ALLOCATE_DRAM_BUFFER, buf)) {
+            perror("allocate");
+            return;
+        }
+        buf->vaddr_user = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    }
+
+    void freeDramBuf(cpu_dram_buf * buf){
+        if(buf->vaddr_user){
+            munmap(buf->vaddr_user, buf->size);
+        }
+        if(ioctl(fd, IOCTL_FREE_DRAM_BUFFER, buf)){
+            perror("free");
+        }
+    }
+
 private:
     int fd;
     std::vector<AgileGpuMem*> allocated_buffers;
