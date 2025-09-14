@@ -2,6 +2,7 @@
 #include <atomic>
 #include <immintrin.h>
 
+#include "agile_coroutine.h"
 #include "agile_lock.h"
 #include "io_utils.h"
 
@@ -175,27 +176,116 @@ public:
     }
 };
 
+typedef struct {
+  uint64_t coroutine_idx;
+    DmaRequest::promise_type *promise;
+    AgileDmaCQHost *cq;
+    uint32_t identifier;
+} DmaCallbackArgs;
+
+static void CUDART_CB host_cb(void* p) {
+    DmaCallbackArgs* args = static_cast<DmaCallbackArgs*>(p);
+    // args->promise->t5 = std::chrono::high_resolution_clock::now();
+    args->cq->updateCpl(args->identifier);
+    // args->promise->t6 = std::chrono::high_resolution_clock::now();
+
+    // Calculate and log the time taken for each stage
+    // auto time0 = args->promise->t1 - args->promise->t0;
+    // auto time1 = args->promise->t2 - args->promise->t1;
+    // auto time2 = args->promise->t3 - args->promise->t2;
+    // auto time3 = args->promise->t4 - args->promise->t3;
+    // auto time4 = args->promise->t5 - args->promise->t4;
+    // auto time5 = args->promise->t6 - args->promise->t5;
+
+    // printf("%lld, %lld, %lld, %lld, %lld, %lld\n",
+    //        time0.count(), time1.count(), time2.count(), time3.count(),
+    //        time4.count(), time5.count());
+}
+
+typedef struct{
+    std::chrono::high_resolution_clock::time_point t0;
+    std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+    std::chrono::high_resolution_clock::time_point t3;
+    std::chrono::high_resolution_clock::time_point t4;
+    std::chrono::high_resolution_clock::time_point t5;
+    std::chrono::high_resolution_clock::time_point t6;
+} monitor_log_item;
+
+typedef struct {
+    uint64_t coroutine_idx;
+    int cb_socket_sender;
+    DmaRequest::promise_type *promise;
+    AgileDmaCQHost *cq;
+    uint32_t identifier;
+    monitor_log_item * log_item;
+} cuda_callback_param;
+
 // Located on the DRAM  
 class AgileDmaSQHost {
 public:
     volatile dma_cmd_t * cmd;
     unsigned int depth;
     unsigned int tail;
+    unsigned int head;
     // void * h_cmd;
     
     cudaStream_t * stream;
+    cudaEvent_t * event;
+    cuda_callback_param *cb_param;
+
+    // cudaGraph_t * graph;
+    // cudaGraphNode_t * memcpyNode;
+    // cudaGraphNode_t * callbackNode;
+    // cudaGraphExec_t * graphExec;
+    // DmaCallbackArgs * cb_args;
+
     AgileDmaSQDevice * ptr;
     uint32_t * d_cmd_locks;
 
+
+    // void* dummy_h = nullptr;   // pinned host
+    // void* dummy_d = nullptr;   // device
+
     __host__
-    AgileDmaSQHost(unsigned int depth) : depth(depth), tail(0), ptr(nullptr) {
+    AgileDmaSQHost(unsigned int depth) : depth(depth), tail(0), head(0), ptr(nullptr) {
         this->stream = (cudaStream_t *) malloc(sizeof(cudaStream_t) * depth);
+        this->event = (cudaEvent_t *) malloc(sizeof(cudaEvent_t) * depth);
+        // this->graph = (cudaGraph_t *) malloc(sizeof(cudaGraph_t) * depth);
+        // this->graphExec = (cudaGraphExec_t *) malloc(sizeof(cudaGraphExec_t) * depth);
+        // this->memcpyNode = (cudaGraphNode_t *) malloc(sizeof(cudaGraphNode_t) * depth);
+        // this->callbackNode = (cudaGraphNode_t *) malloc(sizeof(cudaGraphNode_t) * depth);
+        // this->cb_args = (DmaCallbackArgs *) malloc(sizeof(DmaCallbackArgs) * depth);
+        this->cb_param = (cuda_callback_param *) malloc(sizeof(cuda_callback_param) * depth);
         cuda_err_chk(cudaMalloc(&this->d_cmd_locks, sizeof(uint32_t) * depth));
+
+        // cudaHostAlloc(&dummy_h, 1, cudaHostAllocPortable); // pinned
+        // cudaMalloc(&dummy_d, 1);
+
         for(unsigned int i = 0; i < depth; ++i){
             cuda_err_chk(cudaStreamCreateWithFlags(&this->stream[i], cudaStreamNonBlocking));
+            cuda_err_chk(cudaEventCreateWithFlags(&this->event[i], cudaEventDisableTiming));
+
+            // cuda_err_chk(cudaGraphCreate(&this->graph[i], 0));
+            // cudaMemcpy3DParms p = {};
+            // p.srcPtr = make_cudaPitchedPtr(dummy_d, /*pitch=*/1, /*xsize=*/1, /*ysize=*/1);
+            // p.dstPtr = make_cudaPitchedPtr(dummy_h, /*pitch=*/1, /*xsize=*/1, /*ysize=*/1);
+            // p.extent = make_cudaExtent(/*width bytes=*/1, 1, 1);
+            // p.kind   = cudaMemcpyDeviceToHost;
+            // cuda_err_chk(cudaGraphAddMemcpyNode(&this->memcpyNode[i], this->graph[i], nullptr, 0, &p));
+            // cudaHostNodeParams hp = {};
+            // hp.fn = host_cb;
+            // hp.userData = nullptr;
+            // const cudaGraphNode_t deps[] = { this->memcpyNode[i] };
+            // cuda_err_chk(cudaGraphAddHostNode(&this->callbackNode[i], this->graph[i], deps, 1, &hp));
+            // cuda_err_chk(cudaGraphInstantiate(&this->graphExec[i], this->graph[i], nullptr, nullptr, 0));
         }
 
+
         cuda_err_chk(cudaMallocManaged(&this->cmd, sizeof(volatile dma_cmd_t) * depth));
+        cuda_err_chk(cudaMemset((void *) this->cmd, 0, sizeof(volatile dma_cmd_t) * depth));
+
+        // avoid consistent page fault when polling
         int dev = 0;
         cudaGetDevice(&dev);
         void* p = (void*)(this->cmd);
@@ -207,18 +297,29 @@ public:
         devLoc.type = cudaMemLocationTypeDevice;
         devLoc.id   = dev;
         cuda_err_chk(cudaMemAdvise(p, sizeof(volatile dma_cmd_t) * depth, cudaMemAdviseSetAccessedBy, devLoc));
-        // cuda_err_chk(cudaMemset((void *) this->h_cmd, 0, sizeof(volatile dma_cmd_t) * depth));
     }
 
     __host__
     ~AgileDmaSQHost() {
         cuda_err_chk(cudaFree(this->d_cmd_locks));
+        free(this->cb_param);
         for(unsigned int i = 0; i < depth; ++i){
-            cuda_err_chk(cudaStreamDestroy(this->stream[i])); // GPUassert: invalid device context
+            cuda_err_chk(cudaStreamDestroy(this->stream[i]));
+            cuda_err_chk(cudaEventDestroy(this->event[i]));
+            // cuda_err_chk(cudaGraphDestroy(this->graph[i]));
+            // cuda_err_chk(cudaGraphExecDestroy(this->graphExec[i]));
         }
         free(this->stream);
+        free(this->event);
+        // free(this->graph);
+        // free(this->graphExec);
+        // free(this->memcpyNode);
+        // free(this->callbackNode);
+        // free(this->cb_args);
         // cuda_err_chk(cudaDeviceSynchronize());
         cuda_err_chk(cudaFree((void *) this->cmd));
+        // cuda_err_chk(cudaFree(dummy_d));
+        // cuda_err_chk(cudaFreeHost(dummy_h));
     }
     __host__
     AgileDmaSQDevice * getDevicePtr(){

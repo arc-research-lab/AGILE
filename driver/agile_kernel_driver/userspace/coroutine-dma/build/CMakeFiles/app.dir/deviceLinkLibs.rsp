@@ -1,1 +1,0 @@
-  -L"/usr/local/cuda-12.8/targets/x86_64-linux/lib/stubs"  -L"/usr/local/cuda-12.8/targets/x86_64-linux/lib"   -lcublas -lcuda -lpthread -ldl -lrt -lcudadevrt -lcudart_static 

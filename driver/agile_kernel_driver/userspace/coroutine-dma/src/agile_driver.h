@@ -12,7 +12,7 @@
 
 #include "agile_kernel_driver.h"
 #include "agile_dma_service.h"
-#include "agile_dmem.h"
+#include "agile_gpu_mem.h"
 
 #include "io_utils.h"
 
@@ -198,8 +198,6 @@ public:
             }
         }
 
-        
-
         // Allocate DMA buffers for completion queues
         cpl_dma_buffers = (struct dma_buffer *) malloc(this->worker_num * sizeof(struct dma_buffer));
         memset(cpl_dma_buffers, 0, this->worker_num * sizeof(struct dma_buffer));
@@ -336,7 +334,6 @@ public:
 
     void allocateHost(uint32_t dma_cmd_queue_num, uint32_t dma_cmd_queue_depth, uint32_t monitor_num, uint32_t worker_num){
 
-
         if(monitor_num > dma_cmd_queue_num){
             monitor_num = dma_cmd_queue_num;
         }
@@ -365,7 +362,7 @@ public:
         void * device_ptr = (void *) this->pined_mem.d_ptr + this->getPinedMemOffset();
         this->host_workers = new AgileHostWorker*[worker_num];
         for(uint32_t i = 0; i < worker_num; ++i){
-            host_workers[i] = new AgileHostWorker(i, k_event[i], u_socket_pairs[i].msg_sock[SOCKET_RECEIVE], c_socket_pairs[i].msg_sock[SOCKET_RECEIVE], stop_signals[i].msg_sock[SOCKET_RECEIVE], &cpl_queues[i]);
+            host_workers[i] = new AgileHostWorker(i, k_event[i], u_socket_pairs[i].msg_sock[SOCKET_RECEIVE], c_socket_pairs[i].msg_sock[SOCKET_RECEIVE], stop_signals[i].msg_sock[SOCKET_RECEIVE], &cpl_queues[i], &this->queue_pairs[i * queues_per_monitor], (i == worker_num - 1) ? (dma_cmd_queue_num - (worker_num - 1) * queues_per_monitor) : queues_per_monitor);
         }
         this->dispatcher = new AgileDispatcher(this->host_workers, this->u_socket_pairs, this->c_socket_pairs, this->worker_num);
         this->host_monitors = new AgileHostMonitor*[monitor_num];
@@ -379,9 +376,11 @@ public:
     void startWorker(){
         for(uint32_t i = 0; i < worker_num; ++i){
             worker_threads.emplace_back([this, i](){
-                
+                // pin_current_thread_to(i*2 + 8);
                 int cpu_id = sched_getcpu();
-                INFO("start working on CPU", cpu_id);
+                int node = numa_node_of_cpu(cpu_id);
+                INFO("start working on CPU", cpu_id, "NUMA node", node);
+                // this->host_workers[i]->waitEvents();
                 for(;;){
                     if(-1 == this->host_workers[i]->waitEvents()){
                         break;
@@ -399,6 +398,7 @@ public:
             // write some data to stop_signals
             int sig = 1;
             send(this->stop_signals[i].msg_sock[SOCKET_SEND], &sig, sizeof(sig), 0);
+            this->host_workers[i]->stop();
         }
 
         for(uint32_t i = 0; i < worker_num; ++i){

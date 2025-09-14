@@ -22,7 +22,6 @@ find_package(CUDAToolkit REQUIRED)
 
 add_executable(app
   src/main.cu
-  src/common.cpp
 )
 
 # Includes
@@ -42,10 +41,6 @@ target_compile_options(app PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas=-v>   # (drop -arch=native)
 )
 
-# GDRCopy
-set(GDRCOPY_LIB /home/zhuoping/workspace/AGILE/driver/gdrcopy/src/libgdrapi.so)
-get_filename_component(GDRCOPY_DIR "${GDRCOPY_LIB}" DIRECTORY)
-
 # (Optional) static libstdc++/libgcc — remove if it causes device-link issues
 # target_link_options(app PRIVATE -static-libstdc++ -static-libgcc)
 
@@ -59,7 +54,6 @@ target_link_libraries(app PRIVATE
   CUDA::cudart
   CUDA::cublas          # was 'cublas'
   CUDA::cuda_driver     # was 'cuda' (driver API)
-  "${GDRCOPY_LIB}"
   pthread dl rt numa
   Boost::program_options
   Boost::headers
@@ -67,7 +61,7 @@ target_link_libraries(app PRIVATE
 
 # Extra RPATHs (binary-dir relative + gdrcopy location)
 set_target_properties(app PROPERTIES
-  BUILD_RPATH "${GDRCOPY_DIR};\$ORIGIN;\$ORIGIN/lib"
-  INSTALL_RPATH "\$ORIGIN;\$ORIGIN/lib;${GDRCOPY_DIR}"
+  BUILD_RPATH "\$ORIGIN;\$ORIGIN/lib"
+  INSTALL_RPATH "\$ORIGIN;\$ORIGIN/lib;"
   POSITION_INDEPENDENT_CODE ON
 )
