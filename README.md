@@ -38,6 +38,7 @@ series = {Supercomputing '25}
 ## Installation
 
 AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
+> Note: The requirement on this modified GDRCopy drvier will be removed soon.
 
 To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./tutorial/00_Select_Target_SSD) for more details.
 
