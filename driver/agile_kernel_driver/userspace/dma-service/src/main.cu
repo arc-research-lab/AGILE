@@ -53,8 +53,8 @@ int main(int argc, char ** argv){
 
     INFO("Total", driver.getAvaiableCpuDma(), "DMA engines available.");
     driver.setDmaQueuePairCudaDma(0, 128);
-    driver.setDmaQueuePairCpuDma(1, 128);
-    driver.setMonitorThreadsNum(1);
+    driver.setDmaQueuePairCpuDma(8, 128);
+    driver.setMonitorThreadsNum(8);
     driver.setWorkerThreadsNum(1);
     driver.setHbmCacheSize(1024l * 1024l * 1024l); // 1GB HBM cache
     driver.setDramCacheSize(1024l * 1024l * 1024l); // TODO: this is reserved in grub.
@@ -88,8 +88,12 @@ int main(int argc, char ** argv){
 
     AgileGpuMem reserved_hbm_mem = driver.getReservedMem();
     pollingService<<<1, 1024, 0, service_s>>>(driver.getAgileDmaQueuePairDevicePtr(), driver.getDmaQueuePairNum(), (uint32_t *)reserved_hbm_mem.d_ptr);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait for service to start
+    INFO("Service started...");
+
+    INFO("Start issuing DMA commands...");
     auto start = std::chrono::high_resolution_clock::now();
-    dma_issue_kernel<<<1, 32, 0, kernel_s>>>(driver.getDmaEngineDevice(), conf.transfer_size, nullptr, nullptr, DMA_CPU2GPU, conf.command_num, conf.repeat);
+    dma_issue_kernel<<<8, 1024, 0, kernel_s>>>(driver.getDmaEngineDevice(), conf.transfer_size, nullptr, nullptr, DMA_CPU2GPU, conf.command_num, conf.repeat);
     cuda_err_chk(cudaStreamSynchronize(kernel_s));
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -98,9 +102,7 @@ int main(int argc, char ** argv){
 
     double total_time = std::chrono::duration<double, std::milli>(end - start).count();
     double total_gb = ((double)conf.transfer_size * conf.command_num * conf.repeat) / (1024.0 * 1024.0 * 1024.0);
-    INFO("Total data:", total_gb, "GB");
-    INFO("Total time:", total_time, "ms");
-    INFO("Throughput:", total_gb / (total_time / 1000.0), "GB/s");
+    
 
     cuda_err_chk(cudaStreamDestroy(kernel_s));
     cuda_err_chk(cudaStreamDestroy(service_s));
@@ -109,6 +111,10 @@ int main(int argc, char ** argv){
     driver.stopMonitors();
     driver.stopWorkers();
     driver.freeHost();
+
+    std::cout << "Total data: " << total_gb << " GB" << std::endl;
+    std::cout << "Total time: " << total_time << " ms" << std::endl;
+    std::cout << "Throughput: " << total_gb / (total_time / 1000.0) << " GB/s" << std::endl;
 
     return 0;
 }

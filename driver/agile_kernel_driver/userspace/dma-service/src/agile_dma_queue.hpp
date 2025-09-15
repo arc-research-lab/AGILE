@@ -146,7 +146,7 @@ public:
             cmd[cmd_pos].size = size;
             cmd[cmd_pos].direction = direction;
             __threadfence_system();
-            cmd[cmd_pos].trigger = 1;
+            cmd[cmd_pos].trigger = SQ_CMD_OCCUPY;
             *lock = &cmd_status[cmd_pos];
             return true;
         // }else{
@@ -179,6 +179,8 @@ public:
     uint64_t dram_offset;
     uint64_t hbm_offset;
 
+    uint32_t cmd_count = 0;
+
     AgileDmaSQHost(uint32_t k_queue_id, void * h_cmd_ptr, void * d_cmd_ptr, unsigned int depth, void * h_mem, void * d_mem, uint64_t dram_offset, uint64_t hbm_offset) \
     : k_queue_id(k_queue_id), h_cmd(static_cast<volatile struct agile_dma_cmd_t *>(h_cmd_ptr)), d_cmd(static_cast<volatile struct agile_dma_cmd_t *>(d_cmd_ptr)), \
     ptr(nullptr), tail(0), head(0), depth(depth), h_mem(h_mem), d_mem(d_mem), dram_offset(dram_offset), hbm_offset(hbm_offset) {
@@ -193,23 +195,26 @@ public:
      * the poll function will issue DMA commands and returns how many commands are issued.
      */
     __host__
-    virtual uint32_t poll(int fd) {
+    virtual uint32_t poll(int fd, uint32_t monitor_id) {
         uint32_t count = 0;
-        while(this->h_cmd[tail].trigger == SQ_CMD_OCCUPY){
+        while(this->h_cmd[tail].trigger == SQ_CMD_OCCUPY && count < depth){
             // printf("%s:%d cmd received @ %p %d src: %llx, dst: %llx\n", __FILE__, __LINE__, &this->h_cmd[tail], tail, this->h_cmd[tail].src_offset, this->h_cmd[tail].dst_offset);
-            this->h_cmd[tail].dma_engine_id = 0;
+            this->h_cmd[tail].dma_engine_id = monitor_id; // cmd_count++ % 2;
+            this->h_cmd[tail].trigger = SQ_CMD_ISSUED;
             count++;
-            tail++;
+            tail = (tail + 1) % depth;
             // assign to certain CPU DMA engine
         }
         if(count > 0){
             struct dma_command cmd;
             cmd.queue_id = this->k_queue_id;
             cmd.count = count;
+            // printf("%s:%d submit %d cmds for queue %d\n", __FILE__, __LINE__, count, this->k_queue_id);
             if(ioctl(fd, IOCTL_SUBMIT_DMA_CMD, &cmd)){
                 ERROR("submit command error");
             }
         }
+
         return count;
     }
 
@@ -280,7 +285,7 @@ public:
     }
 
     __host__
-    uint32_t poll(int do_not_use) override {
+    uint32_t poll(int do_not_use, uint32_t monitor_id) override {
         // printf("%s:%d poll AgileGpuDmaSQHost\n", __FILE__, __LINE__);
         if(this->h_cmd[tail].trigger == SQ_CMD_OCCUPY){
             // printf("%s:%d cmd received @ %p %d\n", __FILE__, __LINE__, &this->h_cmd[tail], tail);
@@ -295,7 +300,7 @@ public:
                 this->h_cmd[tail].direction == DMA_CPU2GPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, this->stream[tail]));
             cuda_err_chk(cudaEventRecord(this->event[tail], this->stream[tail]));
             this->h_cmd[tail].trigger = SQ_CMD_ISSUED;
-            tail++;
+            tail = (tail + 1) % depth;
         }
         return 0;
     }
@@ -308,7 +313,7 @@ public:
                 // printf("%s:%d cmd finished @ %p %d\n", __FILE__, __LINE__, this, head);
                 *identifier = head;
                 this->h_cmd[head].trigger = SQ_CMD_FINISHED;
-                head++;   
+                head = (head + 1) % depth;   
                 return true;
             }
         }

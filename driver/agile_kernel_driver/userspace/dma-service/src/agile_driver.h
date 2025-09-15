@@ -43,7 +43,7 @@ class AgileDriver {
 
         fd_drv = ::open("/dev/AGILE-kernel", O_RDWR);
         if (fd_drv < 0) {
-            perror("Failed to open /dev/AGILE-kernel");
+            printf("Failed to open /dev/AGILE-kernel");
             return false;
         }
         if (ioctl(fd_drv, IOCTL_GET_TOTAL_DMA_CHANNELS, &total_dma_channels) < 0) {
@@ -234,6 +234,7 @@ public:
     void stopMonitors(){
         for(uint32_t i = 0; i < monitor_num; ++i){
             host_monitors[i]->stop();
+            host_monitors[i]->printLogs();
         }
     }
 

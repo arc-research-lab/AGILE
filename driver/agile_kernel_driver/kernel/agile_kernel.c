@@ -349,9 +349,10 @@ long issue_dma_cmd(uint32_t engine_idx, uint64_t src_addr, uint64_t dst_addr, ui
     struct completion *event = &(queue_pair->events[cmd_pos]);
     enum dma_ctrl_flags flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT;
     dma_cookie_t cookie;
-    cb_param->issue_start = issue_start;
+    // cb_param->issue_start = issue_start;
 
-    // pr_info("issue dma: src: %llx, dst: %llx, size: %d, channel: %d\n", src_addr, dst_addr, size, engine_idx);
+    // pr_info("Issuing DMA command on engine %d: src: %llx, dst: %llx, size: %u\n", engine_idx, src_addr, dst_addr, size);
+
     init_completion(event);
     // Prepare the DMA transaction
     tx = dmaengine_prep_dma_memcpy(curr_node->chan, dst_addr, src_addr, size, flags);
@@ -379,7 +380,6 @@ long issue_dma_cmd(uint32_t engine_idx, uint64_t src_addr, uint64_t dst_addr, ui
     }
     
     dma_async_issue_pending(curr_node->chan);
-    // cb_param->issue_finish = ktime_get_boottime_ns();
     return 0;
 }
 
