@@ -209,6 +209,9 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
         return -ENODEV;
     }
 
+    /* enable PCIe Bus Master so the SSD can issue DMA */
+    pci_set_master(pdev);
+
     ndev->bar.phys_addr = pci_resource_start(pdev, bar);
     ndev->bar.size = pci_resource_len(pdev, bar);
 
