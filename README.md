@@ -33,7 +33,7 @@ series = {Supercomputing '25}
 </p>
 
 ## 🎉 AGILE tutorial examples are keeping updating now! See [./tutorial](./tutorial) 👀
-> Note: The benchmarks currently use deprecated APIs to initialize SSDs, which may not work and will be updated soon.
+> Note: The benchmarks currently use deprecated APIs to initialize SSDs, which may not work and will be updated soon. ***The temporary solution is to refer to the host code in the tutorial folder and use the CUDA kernel code from the benchmarks.**
 
 ## Installation
 
