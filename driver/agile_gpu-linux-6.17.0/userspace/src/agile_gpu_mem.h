@@ -1,0 +1,120 @@
+#pragma once
+
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <unistd.h>
+#include <sys/types.h>
+#include <cstdint>
+#include <stdint.h> 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <stdio.h>
+
+#include "agile_gpu_krnl.h"
+#include "agile_helper.h"
+typedef uint64_t u64;
+#define PAGE_ROUND_UP(x, n)     (((x) + ((n) - 1)) & ~((n) - 1))
+
+class AgileGpuMem {
+public:
+    AgileGpuMem(pin_buffer_params params) : d_ptr(nullptr), h_ptr(nullptr), size(0), buffer_params(params) {}
+    void * d_ptr; 
+    void * h_ptr;
+    uint64_t phy_addr;
+    size_t size; // size after alignment
+    pin_buffer_params buffer_params; 
+};
+
+class AgileGpuMemAllocator {
+public:
+    AgileGpuMemAllocator() {
+        fd = open("/dev/AGILE-gpu", O_RDWR);
+        if (fd < 0) {
+            perror("open");
+            exit(1);
+        }
+    }
+    
+    ~AgileGpuMemAllocator() {
+        close(fd);
+    }
+
+    AgileGpuMem* allocateBuf(uint64_t allocated_size) {
+
+        // Round up to GPU page size so nvidia_p2p_get_pages gets aligned size
+        uint64_t aligned_size = PAGE_ROUND_UP(allocated_size, GPU_PAGE_SIZE);
+        // Allocate extra page for pointer alignment slack
+        CUdeviceptr ptr, aligned_ptr;
+        ASSERTDRV(cuMemAlloc(&ptr, aligned_size + GPU_PAGE_SIZE));
+        ASSERTDRV(cuPointerSetAttribute(&ptr, CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, ptr));
+        aligned_ptr = PAGE_ROUND_UP(ptr, GPU_PAGE_SIZE);
+        
+        pin_buffer_params params;
+        params.vaddr = aligned_ptr;
+        params.size = aligned_size;
+        params.p2p_token = 0;
+        params.va_space = 0;
+
+        AgileGpuMem *mem = new AgileGpuMem(params);
+        mem->d_ptr = (void*)aligned_ptr;
+        mem->size = params.size;
+        if(ioctl(fd, IOCTL_PIN_GPU_BUFFER, &mem->buffer_params) < 0){
+            perror("ioctl");
+            delete mem;
+            return nullptr;
+        }
+        mem->phy_addr = mem->buffer_params.phy_addr;
+        mem->h_ptr = mmap(nullptr, mem->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mem->phy_addr);
+        if (mem->h_ptr == MAP_FAILED) {
+            perror("mmap GPU");
+            ioctl(fd, IOCTL_UNPIN_GPU_BUFFER, &mem->buffer_params);
+            delete mem;
+            return nullptr;
+        }
+        allocated_buffers.push_back(mem);
+        return mem;
+    }
+
+    void freeBuf(AgileGpuMem* mem) {
+        auto it = std::find(allocated_buffers.begin(), allocated_buffers.end(), mem);
+        if (it != allocated_buffers.end()) {
+            munmap(mem->h_ptr, mem->size);
+            // unpin GPU buffer
+            if(ioctl(fd, IOCTL_UNPIN_GPU_BUFFER, &mem->buffer_params) < 0){
+                perror("ioctl");
+            }
+            ASSERTDRV(cuMemFree((CUdeviceptr)mem->buffer_params.vaddr));
+            allocated_buffers.erase(it);
+            delete mem;
+        }
+    }
+
+    void allocateDramBuf(struct cpu_dram_buf * buf, uint64_t size){
+        buf->size = size;
+        if(ioctl(fd, IOCTL_ALLOCATE_DRAM_BUFFER, buf)) {
+            perror("allocate");
+            return;
+        }
+        buf->vaddr_user = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (buf->vaddr_user == MAP_FAILED) {
+            perror("mmap DRAM");
+            ioctl(fd, IOCTL_FREE_DRAM_BUFFER, buf);
+            buf->vaddr_user = nullptr;
+            return;
+        }
+    }
+
+    void freeDramBuf(cpu_dram_buf * buf){
+        if(buf->vaddr_user){
+            munmap(buf->vaddr_user, buf->size);
+        }
+        if(ioctl(fd, IOCTL_FREE_DRAM_BUFFER, buf)){
+            perror("free");
+        }
+    }
+
+private:
+    int fd;
+    std::vector<AgileGpuMem*> allocated_buffers;
+};
