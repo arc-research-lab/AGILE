@@ -129,7 +129,7 @@ public:
 
         // NVME config
         items.push_back(new ConfigItem<std::string>("nvme_device", "-dev", "/dev/AGILE-NVMe-0000:b1:00.0", "Device of target ssd", nvme_device));
-        items.push_back(new ConfigItem<unsigned int>("queue_num", "-qn", 32, "Number of NVME queue pairs", queue_num));
+        items.push_back(new ConfigItem<unsigned int>("queue_num", "-qn", 16, "Number of NVME queue pairs", queue_num));
         items.push_back(new ConfigItem<unsigned int>("queue_depth", "-qd", 256, "Depth of each NVME queue", queue_depth));
         items.push_back(new ConfigItem<unsigned int>("ssd_blk_offset", "-bo", 0, "Offset of ssd blocks", ssd_blk_offset));
 

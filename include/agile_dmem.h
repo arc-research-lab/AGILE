@@ -1,104 +1,88 @@
 #include "agile_helper.h"
-#include "gdrapi.h"
 
-#include "gdrapi.h"
-#include "common.hpp"
-
-#include <iostream>
-#include <iomanip>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
+using u64 = uint64_t;
+#include "../driver/agile_gpu-linux-6.17.0/common/agile_gpu_krnl.h"
 
-size_t get_hugepage_size() {
-    long size = sysconf(_SC_PAGESIZE);
-    if (size == -1) {
-        perror("sysconf(_SC_PAGESIZE) failed");
-        exit(EXIT_FAILURE);
+#define AGILE_GPU_DEVICE "/dev/AGILE-gpu"
+#define PAGE_ROUND_UP(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
+
+inline void agileDrvAssert(CUresult code, const char *file, int line, bool abort = true)
+{
+    if (code != CUDA_SUCCESS)
+    {
+        const char *err_name = nullptr;
+        cuGetErrorName(code, &err_name);
+        fprintf(stdout, "CUDA error: %s %s %d\n", err_name == nullptr ? "unknown" : err_name, file, line);
+        if (abort) exit(1);
     }
-    return static_cast<size_t>(size);
 }
 
-size_t round_up_to_hugepage(size_t size, size_t hugepage_size) {
-    return (size + hugepage_size - 1) & ~(hugepage_size - 1);
-}
-
-using namespace gdrcopy::test;
-/**
-* check if the exposed GPU memory is continuous
-*/
-bool check_continue(long long int table_size, long long int * table){
-    for(int i = 0; i < table_size - 1; ++i){
-        if(table[i] + 65536 != table[i + 1]){
-            assert(("GPU DMA memory not continuous", false));
-            return false;
-        }
-    }
-    return true;
-}
-
+#define agile_drv_chk(ans) { agileDrvAssert((ans), __FILE__, __LINE__); }
 
 /*
-* Each page should be 65536 bytes
+* Each page should be 65536 bytes.
 */
 unsigned long allocateGPUPinedMem(int device_idx, unsigned int mem_size, CUdeviceptr &d_ptr, void *& h_ptr){
-
-    gdr_t g = gdr_open_safe();
-    gdr_mh_t mh;
-    void *map_d_ptr = NULL;
     CUdevice dev;
-    gpu_mem_handle_t mhandle;
+    agile_drv_chk(cuInit(0));
 
-    // CUdeviceptr d_ptr; // exposed GPU memory pointer
-    long long int *table; // exposed GPU memory physical addresses table
-    gpu_memalloc_fn_t galloc_fn = gpu_mem_alloc;
-    ASSERTDRV(cuInit(0));
     int n_devices = 0;
-    ASSERTDRV(cuDeviceGetCount(&n_devices));
-    int dev_id = device_idx;
-    for(int n=0; n<n_devices; ++n) {
-        char dev_name[256];
-        int dev_pci_domain_id;
-        int dev_pci_bus_id;
-        int dev_pci_device_id;
-        ASSERTDRV(cuDeviceGet(&dev, n));
-        ASSERTDRV(cuDeviceGetName(dev_name, sizeof(dev_name) / sizeof(dev_name[0]), dev));
-        ASSERTDRV(cuDeviceGetAttribute(&dev_pci_domain_id, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, dev));
-        ASSERTDRV(cuDeviceGetAttribute(&dev_pci_bus_id, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, dev));
-        ASSERTDRV(cuDeviceGetAttribute(&dev_pci_device_id, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, dev));
-        std::cout << "GPU id:" << n << "; name: " << dev_name 
-            << "; Bus id: "
-            << std::hex 
-            << std::setfill('0') << std::setw(4) << dev_pci_domain_id
-            << ":" << std::setfill('0') << std::setw(2) << dev_pci_bus_id
-            << ":" << std::setfill('0') << std::setw(2) << dev_pci_device_id
-            << std::dec
-            << std::endl;
+    agile_drv_chk(cuDeviceGetCount(&n_devices));
+    if (device_idx < 0 || device_idx >= n_devices) {
+        fprintf(stderr, "invalid GPU device index %d\n", device_idx);
+        exit(EXIT_FAILURE);
     }
-    std::cout << "selecting device " << dev_id << std::endl;
-    ASSERTDRV(cuDeviceGet(&dev, dev_id));
+
+    agile_drv_chk(cuDeviceGet(&dev, device_idx));
     CUcontext dev_ctx;
-    ASSERTDRV(cuDevicePrimaryCtxRetain(&dev_ctx, dev));
-    ASSERTDRV(cuCtxSetCurrent(dev_ctx));
-    ASSERT_EQ(check_gdr_support(dev), true);
+    agile_drv_chk(cuDevicePrimaryCtxRetain(&dev_ctx, dev));
+    agile_drv_chk(cuCtxSetCurrent(dev_ctx));
 
-    ASSERTDRV(galloc_fn(&mhandle, mem_size, true, true));
-    d_ptr = mhandle.ptr;
-    long long int table_size;
-    gdr_pin_buffer_table(g, d_ptr, mem_size, 0, 0, &mh, &table_size, &table);
+    const uint64_t aligned_size = PAGE_ROUND_UP(static_cast<uint64_t>(mem_size), GPU_PAGE_SIZE);
+    CUdeviceptr raw_d_ptr;
+    agile_drv_chk(cuMemAlloc(&raw_d_ptr, aligned_size + GPU_PAGE_SIZE));
 
-    ASSERT_NEQ(mh, null_mh);
-    std::cout << "physical address: " << std::hex << (table)[0] << std::dec << std::endl;
-    std::cout << "physical continue: " << check_continue(table_size, table) << std::endl;
-    std::cout << "table size: " << table_size << std::endl;
+    unsigned int sync_memops = 1;
+    agile_drv_chk(cuPointerSetAttribute(&sync_memops, CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, raw_d_ptr));
 
-    ASSERT_EQ(gdr_map(g, mh, &map_d_ptr, mem_size), 0);
-    gdr_info_t info;
-    ASSERT_EQ(gdr_get_info(g, mh, &info), 0);
-    int off = info.va - d_ptr;
-    h_ptr = (void *)((char *)map_d_ptr + off);
-    return table[0];
+    d_ptr = PAGE_ROUND_UP(raw_d_ptr, GPU_PAGE_SIZE);
+
+    int fd = open(AGILE_GPU_DEVICE, O_RDWR);
+    if (fd < 0) {
+        perror("open /dev/AGILE-gpu");
+        exit(EXIT_FAILURE);
+    }
+
+    pin_buffer_params params = {};
+    params.vaddr = d_ptr;
+    params.size = aligned_size;
+    params.p2p_token = 0;
+    params.va_space = 0;
+
+    if (ioctl(fd, IOCTL_PIN_GPU_BUFFER, &params) < 0) {
+        perror("ioctl(IOCTL_PIN_GPU_BUFFER)");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
+    void *mapped_ptr = mmap(nullptr, aligned_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, params.phy_addr);
+    if (mapped_ptr == MAP_FAILED) {
+        perror("mmap GPU");
+        ioctl(fd, IOCTL_UNPIN_GPU_BUFFER, &params);
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
+    h_ptr = mapped_ptr;
+    close(fd);
+    return params.phy_addr;
 }
 
 unsigned long allocateCPUPinedMem(int fd, void *& h_ptr, unsigned int mem_size) {

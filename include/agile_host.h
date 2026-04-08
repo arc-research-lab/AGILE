@@ -159,7 +159,7 @@ public:
 
         this->admin_sqdb = SQ_DBL(this->bar, 0, CAP_DSTRD);
         this->admin_cqdb = CQ_DBL(this->bar, 0, CAP_DSTRD);
-
+        printf("bar: %p, bar size: %lu\n", this->bar, this->bar_size);
         cuda_err_chk(cudaHostRegister(((void*)this->bar), this->bar_size, cudaHostRegisterIoMemory));
         for(unsigned int i = 0; i < this->admin_q_depth; ++i){
             for(unsigned int j = 0; j < 16; ++j){
@@ -178,7 +178,7 @@ public:
     }
 
     __host__ void setQueueNums(unsigned int queue_num){
-        printf("setQueueNums %d\n", queue_num);
+        printf("setQueueNums requested: %d\n", queue_num);
         volatile unsigned int * cmd = sq_ptr + asq_pos * 16;
 
         cmd[0] = 0x09 | (asq_pos << 16);
@@ -186,7 +186,32 @@ public:
         cmd[11] = ((queue_num - 1) << 16) | (queue_num - 1);
         asq_pos = (asq_pos + 1) % this->admin_q_depth;
         *admin_sqdb = asq_pos;
-        this->wait_cpl();
+
+        // wait and read completion to get allocated queue count
+        volatile unsigned int * cpl = cq_ptr + acq_pos * 4;
+        while(((cpl[3] >> 16) & 0x1) == this->phase){}
+        if(((cpl[3] >> 17) & 0x1) != 0){
+            std::cout << "setQueueNums NVMe CPL error: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
+            exit(1);
+        }
+
+        // DW0: NSQA (bits 31:16) = #SQ allocated, NCQA (bits 15:0) = #CQ allocated (0-based)
+        unsigned int nsqa = ((cpl[0] >> 16) & 0xFFFF) + 1;
+        unsigned int ncqa = (cpl[0] & 0xFFFF) + 1;
+        unsigned int allocated = (nsqa < ncqa) ? nsqa : ncqa;
+
+        acq_pos++;
+        if(acq_pos == this->admin_q_depth){
+            acq_pos = 0;
+            this->phase = ~(this->phase) & 0x1;
+        }
+        *admin_cqdb = acq_pos;
+
+        if(allocated < queue_num){
+            printf("WARNING: SSD only supports %u queues, reducing from %u\n", allocated, queue_num);
+            this->queue_num = allocated;
+        }
+        printf("setQueueNums actual: %d (SQ:%u CQ:%u)\n", this->queue_num, nsqa, ncqa);
     }
 
 
