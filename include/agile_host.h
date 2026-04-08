@@ -17,6 +17,7 @@
 #include "agile_dmem.h"
 #include "nvme_reg_help.h"
 #include "agile_helper.h"
+#include "logger.hpp"
 
 #include "agile_nvme_driver.h"
 
@@ -71,14 +72,14 @@ public:
 #if REGISTER_NVME
         this->fd = open(this->dev.c_str(), O_RDWR);
         if(this->fd == -1){
-            std::cout << "open device fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "open device fail: %s", dev.c_str());
             exit(0);
         }
 
         // get the BAR size
         struct bar_info info = {0};
         if(ioctl(this->fd, IOCTL_GET_BAR, &info) < 0){
-            std::cout << "ioctl get bar fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "ioctl get bar fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
@@ -87,7 +88,7 @@ public:
         // map the BAR
         this->bar = (volatile unsigned int *) mmap(NULL, this->bar_size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); 
         if(this->bar == MAP_FAILED){
-            std::cout << "mmap dev bar fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "mmap dev bar fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
@@ -101,7 +102,7 @@ public:
         *cc = *cc & ~1;
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 0){
-            std::cout << "CSTS$RDY not ready\n";
+            LOG_WARN("NVME", "CSTS$RDY not ready");
             usleep(this->CAP_TO * 500);
         }
 
@@ -113,13 +114,13 @@ public:
         // allocate memory for admin queues
         this->acq_buf.size = cq_size * sizeof(unsigned int);
         if(ioctl(this->fd, IOCTL_ALLOCATE_DMA_BUFFER, &this->acq_buf) < 0){
-            std::cout << "ioctl alloc acq buf fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "ioctl alloc acq buf fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
         this->cq_ptr = (volatile unsigned int *) mmap(NULL, this->acq_buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); // this->acq_buf.addr
         if(this->cq_ptr == MAP_FAILED){
-            std::cout << "mmap admin cq fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "mmap admin cq fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
@@ -127,14 +128,14 @@ public:
 
         this->asq_buf.size = sq_size  * sizeof(unsigned int);
         if(ioctl(this->fd, IOCTL_ALLOCATE_DMA_BUFFER, &this->asq_buf) < 0){
-            std::cout << "ioctl alloc asq buf fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "ioctl alloc asq buf fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
 
         this->sq_ptr = (volatile unsigned int *) mmap(NULL, this->asq_buf.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->fd, 0); // this->asq_buf.addr
         if(this->sq_ptr == MAP_FAILED){
-            std::cout << "mmap admin queues fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "mmap admin queues fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
@@ -153,13 +154,13 @@ public:
         *cc = CC$IOCQES(4) | CC$IOSQES(6) | CC$MPS(0) | CC$CSS(0) | CC$EN(1);
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 1){
-            std::cout << "CSTS$RDY not ready\n";
+            LOG_WARN("NVME", "CSTS$RDY not ready");
             usleep(this->CAP_TO * 500);
         }
 
         this->admin_sqdb = SQ_DBL(this->bar, 0, CAP_DSTRD);
         this->admin_cqdb = CQ_DBL(this->bar, 0, CAP_DSTRD);
-        printf("bar: %p, bar size: %lu\n", this->bar, this->bar_size);
+        LOG_INFO("NVME", "bar: %p, bar size: %lu", this->bar, this->bar_size);
         cuda_err_chk(cudaHostRegister(((void*)this->bar), this->bar_size, cudaHostRegisterIoMemory));
         for(unsigned int i = 0; i < this->admin_q_depth; ++i){
             for(unsigned int j = 0; j < 16; ++j){
@@ -170,7 +171,7 @@ public:
             }
         }
 
-        std::cout << "NVMe device opened: " << dev << std::endl;
+        LOG_INFO("NVME", "NVMe device opened: %s", dev.c_str());
         
         setQueueNums(queue_num);
 
@@ -178,7 +179,7 @@ public:
     }
 
     __host__ void setQueueNums(unsigned int queue_num){
-        printf("setQueueNums requested: %d\n", queue_num);
+        LOG_INFO("NVME", "setQueueNums requested: %u", queue_num);
         volatile unsigned int * cmd = sq_ptr + asq_pos * 16;
 
         cmd[0] = 0x09 | (asq_pos << 16);
@@ -191,7 +192,11 @@ public:
         volatile unsigned int * cpl = cq_ptr + acq_pos * 4;
         while(((cpl[3] >> 16) & 0x1) == this->phase){}
         if(((cpl[3] >> 17) & 0x1) != 0){
-            std::cout << "setQueueNums NVMe CPL error: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
+            LOG_ERROR("NVME", "setQueueNums NVMe CPL error: %08x %08x %08x %08x",
+                static_cast<unsigned int>(cpl[0]),
+                static_cast<unsigned int>(cpl[1]),
+                static_cast<unsigned int>(cpl[2]),
+                static_cast<unsigned int>(cpl[3]));
             exit(1);
         }
 
@@ -208,10 +213,10 @@ public:
         *admin_cqdb = acq_pos;
 
         if(allocated < queue_num){
-            printf("WARNING: SSD only supports %u queues, reducing from %u\n", allocated, queue_num);
+            LOG_WARN("NVME", "SSD only supports %u queues, reducing from %u", allocated, queue_num);
             this->queue_num = allocated;
         }
-        printf("setQueueNums actual: %d (SQ:%u CQ:%u)\n", this->queue_num, nsqa, ncqa);
+        LOG_INFO("NVME", "setQueueNums actual: %u (SQ:%u CQ:%u)", this->queue_num, nsqa, ncqa);
     }
 
 
@@ -221,13 +226,13 @@ public:
         *cc = *cc & ~1;
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 0){
-            std::cout << "CSTS$RDY not ready\n";
+            LOG_WARN("NVME", "CSTS$RDY not ready");
             usleep(this->CAP_TO * 500);
         }
         *cc = *cc & ~1;
         usleep(this->CAP_TO * 500);
         while (CSTS$RDY(this->bar) != 0){
-            std::cout << "CSTS$RDY not ready\n";
+            LOG_WARN("NVME", "CSTS$RDY not ready");
             usleep(this->CAP_TO * 500);
         }
         cuda_err_chk(cudaHostUnregister(((void*)this->bar)));
@@ -238,12 +243,12 @@ public:
         munmap((void*)this->sq_ptr, this->asq_buf.size);
 
         if(ioctl(this->fd, IOCTL_FREE_DMA_BUFFER, &this->asq_buf) < 0){
-            std::cout << "ioctl free asq buf fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "ioctl free asq buf fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
         if(ioctl(this->fd, IOCTL_FREE_DMA_BUFFER, &this->acq_buf) < 0){
-            std::cout << "ioctl free acq buf fail: " << dev << std::endl;
+            LOG_ERROR("NVME", "ioctl free acq buf fail: %s", dev.c_str());
             close(this->fd);
             exit(0);
         }
@@ -281,7 +286,11 @@ public:
             // usleep(1000);
         }
         if(((cpl[3] >> 17) & 0x1) != 0){
-            std::cout << "Admin NVMe CPL: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
+            LOG_ERROR("NVME", "Admin NVMe CPL: %08x %08x %08x %08x",
+                static_cast<unsigned int>(cpl[0]),
+                static_cast<unsigned int>(cpl[1]),
+                static_cast<unsigned int>(cpl[2]),
+                static_cast<unsigned int>(cpl[3]));
         }
 
         // std::cout << "Admin NVMe CPL: " << std::hex << cpl[0] << " " << cpl[1] << " " << cpl[2] << " " << cpl[3] << std::dec << std::endl;
@@ -487,7 +496,7 @@ public:
     __host__ void appendBuf2File(std::string filepath, AgileBuf *& buf, unsigned int num){
         std::ofstream file(filepath, std::ios::binary | std::ios::app); // Open file in binary mode
         if (!file) {
-            std::cerr << "Error opening file!" << std::endl;
+            LOG_ERROR("AGILE", "Error opening file: %s", filepath.c_str());
             exit(0);
         }
 
@@ -506,7 +515,7 @@ public:
     __host__ void loadFile2Buf(std::string filepath, unsigned long offset, AgileBuf *& buf, unsigned int num){
         std::ifstream file(filepath, std::ios::binary); // Open file in binary mode
         if (!file) {
-            std::cerr << "Error opening file!" << std::endl;
+            LOG_ERROR("AGILE", "Error opening file: %s", filepath.c_str());
             exit(0);
         }
 
@@ -530,7 +539,7 @@ public:
     // get CPU pinned memory for the host with 64K alignment
     __host__ unsigned long getCPUPinnedMem(void *& ptr, unsigned long size){
         if(this->cpu_mem_offset + size > CPU_MEM_SIZE){
-            std::cerr << "cpu memory is not enough" << std::endl;
+            LOG_ERROR("AGILE", "cpu memory is not enough");
             exit(0);
         }
 
@@ -582,10 +591,10 @@ public:
     }
 
     __host__ unsigned int loadFile2Emu(std::string filepath, unsigned int block_offset){
-        std::cout << "loading file...\n";
+        LOG_INFO("AGILE", "loading file: %s", filepath.c_str());
         std::ifstream file(filepath, std::ios::binary); // Open file in binary mode
         if (!file) {
-            std::cerr << "Error opening file!" << std::endl;
+            LOG_ERROR("AGILE", "Error opening file: %s", filepath.c_str());
             exit(0);
         }
 
@@ -596,7 +605,7 @@ public:
         unsigned long finish_size = 0;
         
         // load the file to the emuNvme
-        std::cout << "loading file... size: " << size << std::endl;
+        LOG_INFO("AGILE", "loading file size: %lld", static_cast<long long>(size));
         // for(unsigned int i = 0; i < 10; i++){
         //     ((char*)(emuNmve))[i] = file.get();
         // }
@@ -607,7 +616,10 @@ public:
 
             file.read(((char*)(emuNmve) + block_offset * this->block_size + finish_size), 4096);
             finish_size += file.gcount();
-            std::cout << "finish_size: " << finish_size << " total: " << size << " per: " << ((float)finish_size) / ((float) size) << std::endl;
+            LOG_INFO("AGILE", "finish_size: %lu total: %lld per: %.6f",
+                finish_size,
+                static_cast<long long>(size),
+                size > 0 ? static_cast<double>(finish_size) / static_cast<double>(size) : 1.0);
         }
 
 
@@ -634,7 +646,7 @@ public:
     __host__ unsigned int saveEmu2File(std::string filepath, unsigned int block_offset, unsigned int datasize){
         std::ofstream outFile(filepath);
         if (!outFile) {
-            std::cerr << "Failed to open file for writing.\n";
+            LOG_ERROR("AGILE", "Failed to open file for writing: %s", filepath.c_str());
             return 1;
         }
 
@@ -669,7 +681,7 @@ public:
 
     __host__ void initializeAgile(){
         // allocate memory
-        std::cout << "allocating GPU pinned memory\n";
+        LOG_INFO("AGILE", "allocating GPU pinned memory\n");
         this->gpu_mem = this->gpu_allocator.allocateBuf(this->getGPUPinnedMemSize());
         unsigned long gpu_physical_addr = this->gpu_mem->phy_addr;
         this->d_gpu_ptr = this->gpu_mem->d_ptr;
@@ -879,16 +891,54 @@ public:
 
 #if ENABLE_LOGGING
     __host__ void monitoring(){
-        std::cout << "run: " << this->run << " prefetch_hit: " << this->h_logger->prefetch_hit << " prefetch_relaxed_hit: " << this->h_logger->prefetch_relaxed_hit << " prefetch_relaxed_miss: " << this->h_logger->prefetch_relaxed_miss << " prefetch_issue: " << this->h_logger->prefetch_issue << " runtime_issue: " << this->h_logger->runtime_issue << " warp_master_wait: " << this->h_logger->warp_master_wait << std::endl;
-        std::cout << "issued_read: " << this->h_logger->issued_read << " issued_write: " << this->h_logger->issued_write << " attempt_fail: " << this->h_logger->attempt_fail << std::endl;
-        std::cout << "finished_read: " << this->h_logger->finished_read << " diff: " << this->h_logger->issued_read - this->h_logger->finished_read << " finished_write: " << this->h_logger->finished_write << std::endl;
-        std::cout << "find_new_cacheline: " << this->h_logger->find_new_cacheline << " gpu_cache_hit: " << this->h_logger->gpu_cache_hit << " gpu2cpu: " << this->h_logger->gpu2cpu << " gpu_cache_miss: " << this->h_logger->gpu_cache_miss << " gpu_cache_evict: " << this->h_logger->gpu_cache_evict << std::endl;
-        std::cout << "cpu_cache_hit: " << this->h_logger->cpu_cache_hit << " cpu2buf: " << this->h_logger->cpu2buf << " cpu2gpu: " << this->h_logger->cpu2gpu << " cpu_cache_miss: " << this->h_logger->cpu_cache_miss << " cpu_cache_evict: " << this->h_logger->cpu_cache_evict << std::endl;
-        std::cout << "finished_block: " << this->h_logger->finished_block << " finished_agile_warp: " << this->h_logger->finished_agile_warp << std::endl;
-        std::cout << "service: " << this->h_logger->service << " wait buffer: " << this->h_logger->wating_buffer << " finish buffer: " << this->h_logger->finish_buffer << " local hit: " << this->h_logger->buffer_localhit << std::endl;
-        std::cout << "waiting: " << this->h_logger->waiting << " waitTooMany: " << this->h_logger->waitTooMany << " deadlock_check: " << this->h_logger->deadlock_check << std::endl;
-        std::cout << "propogate_time: " << this->h_logger->propogate_time << " appendbuf_count: " << this->h_logger->appendbuf_count << " propogate_count: " << this->h_logger->propogate_count << " self_propagate: " << this->h_logger->self_propagate << std::endl;
-        std::cout << "push in table: " << this->h_logger->push_in_table << " pop out table count: " << this->h_logger->pop_in_table << std::endl;
+        LOG_INFO("AGILE", "run: %llu prefetch_hit: %llu prefetch_relaxed_hit: %llu prefetch_relaxed_miss: %llu prefetch_issue: %llu runtime_issue: %llu warp_master_wait: %llu",
+            static_cast<unsigned long long>(this->run),
+            static_cast<unsigned long long>(this->h_logger->prefetch_hit),
+            static_cast<unsigned long long>(this->h_logger->prefetch_relaxed_hit),
+            static_cast<unsigned long long>(this->h_logger->prefetch_relaxed_miss),
+            static_cast<unsigned long long>(this->h_logger->prefetch_issue),
+            static_cast<unsigned long long>(this->h_logger->runtime_issue),
+            static_cast<unsigned long long>(this->h_logger->warp_master_wait));
+        LOG_INFO("AGILE", "issued_read: %llu issued_write: %llu attempt_fail: %llu",
+            static_cast<unsigned long long>(this->h_logger->issued_read),
+            static_cast<unsigned long long>(this->h_logger->issued_write),
+            static_cast<unsigned long long>(this->h_logger->attempt_fail));
+        LOG_INFO("AGILE", "finished_read: %llu diff: %lld finished_write: %llu",
+            static_cast<unsigned long long>(this->h_logger->finished_read),
+            static_cast<long long>(this->h_logger->issued_read) - static_cast<long long>(this->h_logger->finished_read),
+            static_cast<unsigned long long>(this->h_logger->finished_write));
+        LOG_INFO("AGILE", "find_new_cacheline: %llu gpu_cache_hit: %llu gpu2cpu: %llu gpu_cache_miss: %llu gpu_cache_evict: %llu",
+            static_cast<unsigned long long>(this->h_logger->find_new_cacheline),
+            static_cast<unsigned long long>(this->h_logger->gpu_cache_hit),
+            static_cast<unsigned long long>(this->h_logger->gpu2cpu),
+            static_cast<unsigned long long>(this->h_logger->gpu_cache_miss),
+            static_cast<unsigned long long>(this->h_logger->gpu_cache_evict));
+        LOG_INFO("AGILE", "cpu_cache_hit: %llu cpu2buf: %llu cpu2gpu: %llu cpu_cache_miss: %llu cpu_cache_evict: %llu",
+            static_cast<unsigned long long>(this->h_logger->cpu_cache_hit),
+            static_cast<unsigned long long>(this->h_logger->cpu2buf),
+            static_cast<unsigned long long>(this->h_logger->cpu2gpu),
+            static_cast<unsigned long long>(this->h_logger->cpu_cache_miss),
+            static_cast<unsigned long long>(this->h_logger->cpu_cache_evict));
+        LOG_INFO("AGILE", "finished_block: %llu finished_agile_warp: %llu",
+            static_cast<unsigned long long>(this->h_logger->finished_block),
+            static_cast<unsigned long long>(this->h_logger->finished_agile_warp));
+        LOG_INFO("AGILE", "service: %llu wait buffer: %llu finish buffer: %llu local hit: %llu",
+            static_cast<unsigned long long>(this->h_logger->service),
+            static_cast<unsigned long long>(this->h_logger->wating_buffer),
+            static_cast<unsigned long long>(this->h_logger->finish_buffer),
+            static_cast<unsigned long long>(this->h_logger->buffer_localhit));
+        LOG_INFO("AGILE", "waiting: %llu waitTooMany: %llu deadlock_check: %llu",
+            static_cast<unsigned long long>(this->h_logger->waiting),
+            static_cast<unsigned long long>(this->h_logger->waitTooMany),
+            static_cast<unsigned long long>(this->h_logger->deadlock_check));
+        LOG_INFO("AGILE", "propogate_time: %llu appendbuf_count: %llu propogate_count: %llu self_propagate: %llu",
+            static_cast<unsigned long long>(this->h_logger->propogate_time),
+            static_cast<unsigned long long>(this->h_logger->appendbuf_count),
+            static_cast<unsigned long long>(this->h_logger->propogate_count),
+            static_cast<unsigned long long>(this->h_logger->self_propagate));
+        LOG_INFO("AGILE", "push in table: %llu pop out table count: %llu",
+            static_cast<unsigned long long>(this->h_logger->push_in_table),
+            static_cast<unsigned long long>(this->h_logger->pop_in_table));
 
         // for(int i = 0; i < 64; ++i){
         //     unsigned idx = i * 2;
@@ -907,7 +957,7 @@ public:
         unsigned int warps = this->total_pairs;
         unsigned int threads = warps * 32;
         unsigned int blocks = threads / 1024 + (threads % 1024 == 0 ? 0 : 1);
-        std::cout << "agile blocks: " << blocks << " threads: " << threads << std::endl;
+        LOG_INFO("AGILE", "agile blocks: %u threads: %u", blocks, threads);
         start_agile_cq_service<<<blocks, min(threads, 1024), 0, this->agile_cq>>>(this->d_ctrl);
         usleep(100);
     }
@@ -915,7 +965,7 @@ public:
     __host__ void startAgile(unsigned int griddim, unsigned int blockdim){
         cuda_err_chk(cudaStreamCreateWithFlags(&(this->agile_cq), cudaStreamNonBlocking));
         *((volatile unsigned int*)this->h_ctrl->stop_signal) = 0;
-        std::cout << "agile blocks: " << griddim << " threads: " << blockdim << std::endl;
+        LOG_INFO("AGILE", "agile blocks: %u threads: %u", griddim, blockdim);
         start_agile_cq_service<<<griddim, blockdim, 0, this->agile_cq>>>(this->d_ctrl);
         usleep(100);
 
@@ -964,13 +1014,12 @@ public:
             if (err == cudaSuccess) {
                 break;
             } else if (err == cudaErrorNotReady) {
-                std::cout << "\033[2J\033[H";
-                std::cout.flush();
+                ::logger::rawf("\033[2J\033[H");
                 unsigned int line = 8 ;
-                std::cout << "\033[" << line << "H"; 
+                ::logger::rawf("\033[%uH", line);
                 this->monitoring();
             } else {
-                std::cerr << "CUDA Error: " << cudaGetErrorString(err) << std::endl;
+                LOG_ERROR("AGILE", "CUDA Error: %s", cudaGetErrorString(err));
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Non-blocking wait
@@ -996,13 +1045,12 @@ public:
             if (err == cudaSuccess) {
                 break;
             } else if (err == cudaErrorNotReady) {
-                std::cout << "\033[2J\033[H";
-                std::cout.flush();
+                ::logger::rawf("\033[2J\033[H");
                 unsigned int line = 8 ;
-                std::cout << "\033[" << line << "H"; 
+                ::logger::rawf("\033[%uH", line);
                 this->monitoring();
             } else {
-                std::cerr << "CUDA Error: " << cudaGetErrorString(err) << std::endl;
+                LOG_ERROR("AGILE", "CUDA Error: %s", cudaGetErrorString(err));
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Non-blocking wait
@@ -1017,10 +1065,10 @@ public:
     }
 
     __host__ void applyCacheWrite2Nvme(){
-        std::cout << "HOST: start applyCacheWrite2Nvme()\n";
+        LOG_INFO("AGILE", "HOST: start applyCacheWrite2Nvme()");
         agile_evict_cache_to_nvme<<<compute_blocks + agile_blocks, threads_per_block>>>(this->d_ctrl);
         cuda_err_chk(cudaDeviceSynchronize());
-        std::cout << "HOST: finish applyCacheWrite2Nvme()\n";
+        LOG_INFO("AGILE", "HOST: finish applyCacheWrite2Nvme()");
 #if ENABLE_LOGGING
         this->monitoring();
 #endif

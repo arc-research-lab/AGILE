@@ -2,6 +2,8 @@
 #include "agile_cache_hierarchy.h"
 #include "agile_ctrl.h"
 
+#include "logger.hpp"
+
 class DisableShareTable : public ShareTableBase<DisableShareTable> {
 public:
     
@@ -33,7 +35,7 @@ class SimpleShareTable : public ShareTableBase<SimpleShareTable> {
 public:
 
     __host__ SimpleShareTable(unsigned int table_size) : ShareTableBase <SimpleShareTable> (table_size) {
-        printf("table_size: %d\n", table_size);
+        LOG_INFO("STable", "table_size: %d", table_size);
     }
 
     __device__ unsigned int checkTableAppendImpl(NVME_DEV_IDX_TYPE ssd_dev_idx, SSDBLK_TYPE ssd_blk_idx, AgileBuf** res, AgileBuf * candidate, AgileLockChain * chain){
