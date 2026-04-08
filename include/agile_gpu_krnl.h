@@ -1,0 +1,1 @@
+../driver/agile_gpu-linux-6.8.0/common/agile_gpu_krnl.h

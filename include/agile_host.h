@@ -391,6 +391,8 @@ class AgileHost {
 
     unsigned int gpu_device_idx;
 
+    AgileGpuMemAllocator gpu_allocator;
+    AgileGpuMem * gpu_mem;
     CUdeviceptr d_gpu_ptr;
     void * h_gpu_ptr;
 
@@ -425,7 +427,7 @@ public:
 #endif
     unsigned int block_size;
 
-    __host__ AgileHost(unsigned int gpu_device_idx, unsigned int block_size) : block_size(block_size), gpu_device_idx(gpu_device_idx) {
+    __host__ AgileHost(unsigned int gpu_device_idx, unsigned int block_size) : block_size(block_size), gpu_device_idx(gpu_device_idx), gpu_allocator(gpu_device_idx) {
         cuda_err_chk(cudaMalloc(&(this->d_ctrl), sizeof(AgileCtrl<GPUCacheImpl, CPUCacheImpl, ShareTableImpl>)));
         cuda_err_chk(cudaMalloc(&(this->d_hierarchy), sizeof(AgileCacheHierarchy<GPUCacheImpl, CPUCacheImpl, ShareTableImpl>)));
         cuda_err_chk(cudaMalloc(&(this->d_gpu_cache), sizeof(GPUCacheImpl)));
@@ -668,7 +670,10 @@ public:
     __host__ void initializeAgile(){
         // allocate memory
         std::cout << "allocating GPU pinned memory\n";
-        unsigned long gpu_physical_addr = allocateGPUPinedMem(this->gpu_device_idx, this->getGPUPinnedMemSize(), this->d_gpu_ptr, this->h_gpu_ptr);
+        this->gpu_mem = this->gpu_allocator.allocateBuf(this->getGPUPinnedMemSize());
+        unsigned long gpu_physical_addr = this->gpu_mem->phy_addr;
+        this->d_gpu_ptr = this->gpu_mem->d_ptr;
+        this->h_gpu_ptr = this->gpu_mem->h_ptr;
         
         // std::cout << "allocating CPU pinned memory\n";
         // this->initCPUCache();
@@ -925,6 +930,16 @@ public:
     }
 
 
+    /**
+     * @brief Query the occupancy of a kernel. This function must be called before startAgile() 
+     *          to make sure the kernel can be launched successfully and be executed in parallel with AGILE service.
+     * 
+     * @tparam Func The kernel function type.
+     * @param kernel The kernel function.
+     * @param blockSize The number of threads per block.
+     * @param dynamicSmemSize The size of dynamic shared memory per block.
+     * @return int The number of active blocks per multiprocessor.
+     */
     template <typename Func>
     __host__ int queryOccupancy(Func kernel, unsigned int blockSize, unsigned int dynamicSmemSize) {
        int numBlocksPerSM = 0;

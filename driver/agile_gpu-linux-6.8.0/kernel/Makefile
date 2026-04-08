@@ -1,5 +1,5 @@
 KDIR ?= /lib/modules/$(shell uname -r)/build
-NVIDIADR ?= /usr/src/nvidia-580.65.06
+NVIDIADR ?= /usr/src/nvidia-595.58.03
 
 # nv-p2p.h lives in nvidia-peermem/
 ccflags-y += -I$(NVIDIADR)/nvidia-peermem

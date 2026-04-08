@@ -27,7 +27,21 @@ public:
 
 class AgileGpuMemAllocator {
 public:
-    AgileGpuMemAllocator() {
+    AgileGpuMemAllocator(int device_idx = 0) {
+        ASSERTDRV(cuInit(0));
+
+        int n_devices = 0;
+        ASSERTDRV(cuDeviceGetCount(&n_devices));
+        if (device_idx < 0 || device_idx >= n_devices) {
+            fprintf(stderr, "invalid GPU device index %d\n", device_idx);
+            exit(EXIT_FAILURE);
+        }
+
+        CUdevice dev;
+        ASSERTDRV(cuDeviceGet(&dev, device_idx));
+        ASSERTDRV(cuDevicePrimaryCtxRetain(&dev_ctx, dev));
+        ASSERTDRV(cuCtxSetCurrent(dev_ctx));
+
         fd = open("/dev/AGILE-gpu", O_RDWR);
         if (fd < 0) {
             perror("open");
@@ -100,5 +114,6 @@ public:
 
 private:
     int fd;
+    CUcontext dev_ctx;
     std::vector<AgileGpuMem*> allocated_buffers;
 };

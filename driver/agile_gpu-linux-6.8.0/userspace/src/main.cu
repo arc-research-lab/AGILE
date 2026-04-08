@@ -18,16 +18,7 @@ void kernel_test(uint32_t * data){
 
 int main(int argc, char ** argv){
 
-    // Initialize CUDA
-    ASSERTDRV(cuInit(0));
-    CUdevice dev;
-    ASSERTDRV(cuDeviceGet(&dev, 0));
-
-    CUcontext dev_ctx;
-    ASSERTDRV(cuDevicePrimaryCtxRetain(&dev_ctx, dev));
-    ASSERTDRV(cuCtxSetCurrent(dev_ctx));
-
-    AgileGpuMemAllocator allocator;
+    AgileGpuMemAllocator allocator(0);
 
     AgileGpuMem *mem = allocator.allocateBuf(1024l * 1024l * 1024l * 2l);
     std::cout << "Before kernel, data[0] = " << ((uint32_t *)mem->h_ptr)[0] << std::endl;

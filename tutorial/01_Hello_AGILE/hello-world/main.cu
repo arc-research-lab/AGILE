@@ -45,6 +45,7 @@ int main(int argc, char ** argv){
 
     host.initializeAgile();
 
+    // We need to query occupancy before starting AGILE to make sure the kernel can be launched successfully and be executed in parallel with AGILE service.
     host.queryOccupancy(gpu_kernel, 1024, 0);
 
     host.startAgile();

@@ -12,7 +12,9 @@
 #include <assert.h>
 #include "agile_logger.h"
 
-#define ENABLE_LOGGING 1
+#ifndef ENABLE_LOGGING
+#define ENABLE_LOGGING 0
+#endif
 #define SHOW_LOGGING 0
 
 #define LOCK_DEBUG 0

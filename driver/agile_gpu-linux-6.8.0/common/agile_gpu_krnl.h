@@ -7,6 +7,7 @@
 #else
     #include <sys/ioctl.h>
     #include <stdint.h>
+    using u64 = uint64_t;
 #endif
 
 #define GPU_PAGE_SHIFT   16
