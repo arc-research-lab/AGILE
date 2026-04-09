@@ -527,7 +527,12 @@ public:
             unsigned finished_size = 0;
             while(finished_size < this->block_size){
                 file.read((char *)h_data + finished_size, this->block_size - finished_size);
-                finished_size += file.gcount();
+                auto got = file.gcount();
+                if(got == 0){
+                    memset((char *)h_data + finished_size, 0, this->block_size - finished_size);
+                    break;
+                }
+                finished_size += got;
             }
             cuda_err_chk(cudaMemcpy(h_buf[i].data, h_data, this->block_size, cudaMemcpyHostToDevice));
         }
