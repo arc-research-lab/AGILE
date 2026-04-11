@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -256,17 +257,15 @@ int main(int argc, char **argv) {
         return false;
     };
 
-    /* IPC collector (plain text without ANSI) */
+    /* IPC collector for the final summary only (plain text without ANSI) */
     std::vector<std::string> ipc_messages;
 
-    /* Helper: print colored line to stdout immediately, store plain for IPC */
+    /* Helper: print colored line to stdout immediately */
     auto emit = [&](const std::string &plain, const std::string &colored) {
         std::cout << colored << "\n";
-        ipc_messages.push_back(plain);
     };
     auto emit_plain = [&](const std::string &msg) {
         std::cout << msg << "\n";
-        ipc_messages.push_back(msg);
     };
 
     emit("=== Kernel Register Report ===",
@@ -388,25 +387,39 @@ int main(int argc, char **argv) {
 
     /* ── Summary table ── */
     {
-        std::string border = "════════════════════════════════════════";
-        std::string divider = "────────────────────────────────────────";
+        std::ostringstream output;
+        std::size_t label_width = 0;
+        for (const auto &s : summary)
+            label_width = std::max(label_width, s.label.size());
+
+        std::string border  = "════════════════════════════════════════════════════════════════";
+        std::string divider = "────────────────────────────────────────────────────────────────";
         emit(border, std::string(clr::cyan) + border + clr::reset);
-        emit("  Summary: Registers per Thread",
-             std::string(clr::bcyan) + "  Summary: Registers per Thread" + clr::reset);
+        //    ipc_messages.push_back(border);
+        emit("                Summary: Registers per Thread",
+             std::string(clr::bcyan) + "                Summary: Registers per Thread" + clr::reset);
+        //    ipc_messages.push_back("                Summary: Registers per Thread");
         emit(divider, std::string(clr::cyan) + divider + clr::reset);
+        //    ipc_messages.push_back(divider);
+        output << "[";
         for (const auto &s : summary) {
             std::ostringstream os_plain, os_color;
-            os_plain << "  " << s.label << "  │  " << s.kernel << ": " << s.regs << " regs";
-            os_color << clr::bold << "  " << s.label << clr::reset
+            os_plain << "  " << std::left << std::setw(label_width) << s.label
+                     << "  │  " << s.kernel << ": " << s.regs << " regs";
+            os_color << clr::bold << "  " << std::left << std::setw(label_width) << s.label << clr::reset
                      << "  │  " << clr::byellow << s.kernel << ": " << s.regs << " regs";
             if (s.cmem > 0) {
                 os_plain << ", " << s.cmem << " B cmem";
                 os_color << ", " << s.cmem << " B cmem";
             }
+            output << "{\"label\": \"" + s.label + "\", \"kernel\": \"" + s.kernel + "\", \"regs\": " + std::to_string(s.regs) + ", \"cmem\": " + std::to_string(s.cmem) + "},";
             os_color << clr::reset;
             emit(os_plain.str(), os_color.str());
+            // ipc_messages.push_back(os_plain.str());
         }
         emit(border, std::string(clr::cyan) + border + clr::reset);
+        output << "{}]";
+        ipc_messages.push_back(output.str());
     }
 
     /* Send via IPC (plain text, no ANSI codes) */

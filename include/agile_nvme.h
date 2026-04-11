@@ -361,7 +361,7 @@ public:
         unsigned int q_idx =  (threadIdx.x) % queue_num;
         unsigned int counter = 0;
         while(!this->pairs[q_idx].sq.attemptEnqueue(AGILE_NVME_READ, table_idx, device_type, ssd_blk_idx, blocks, phy_addr, chain)){
-            q_idx = (q_idx + 1) % queue_num;
+            // q_idx = (q_idx + 1) % queue_num;
             counter++;
             if(counter == 100000){
                 counter = 0;

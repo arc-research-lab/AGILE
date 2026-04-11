@@ -172,11 +172,12 @@ public:
     __device__ void wait(){
         unsigned int counter = 0;
         while(atomicAdd(&(this->status), 0) != AGILE_BUF_READY){
-            counter++;
-            if(counter == 10000){
-                counter = 0;
-                LOGGING(atomicAdd(&(logger->waitTooMany), 1));
-            }
+            __nanosleep(100);
+            // counter++;
+            // if(counter == 10000){
+            //     counter = 0;
+            //     LOGGING(atomicAdd(&(logger->waitTooMany), 1));
+            // }
         }
         // printf("wait: %p %d\n", this, this->status);
     }

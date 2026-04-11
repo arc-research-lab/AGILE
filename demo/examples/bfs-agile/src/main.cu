@@ -39,9 +39,9 @@ __global__ void bfs_kernel(AGILE_CTRL *ctrl,
         auto agileArr = ctrl->getArrayWrap<unsigned int>(chain);
         for (unsigned int j = offsets[tid]; j < offsets[tid + 1]; j++) {
             unsigned int neighbor = agileArr[0][j];
-            if (level == 0) {
-                printf("tid=%u j=%u neighbor=%u\n", tid, j, neighbor);
-            }
+            // if (level == 0) {
+            //     printf("tid=%u j=%u neighbor=%u\n", tid, j, neighbor);
+            // }
             if (node_levels[neighbor] == (unsigned int)-1) {
                 node_levels[neighbor] = level + 1;
                 *changed = 1;

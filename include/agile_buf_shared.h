@@ -31,32 +31,29 @@ public:
 
     __device__ unsigned long load(NVME_DEV_IDX_TYPE dev_id, SSDBLK_TYPE blk_idx_start, AgileLockChain &chain){
         unsigned long start, end;
-        LOG_CLOCK(start);
+        // LOG_CLOCK(start);
         cg::thread_block block = cg::this_thread_block();
         unsigned int tid = threadIdx.x;
-        if(tid < size){
-            // printf("load %p %d %d\n", &buf[tid], buf[tid].status, tid);
+        for(unsigned int i = tid; i < size; i += blockDim.x * gridDim.x){
             AgileBufPtr bufPtr;
-            // buf[tid].resetStatus();
-            bufPtr.buf = &buf[tid];
-
-            ctrl->asyncRead(dev_id, blk_idx_start + tid, &bufPtr, &chain);
+            bufPtr.buf = &buf[i];
+            ctrl->asyncRead(dev_id, blk_idx_start + i, &bufPtr, &chain);
         }
-        LOG_CLOCK(end);
-        return end - start;
+        // LOG_CLOCK(end);
+        return 0; // end - start;
     }
 
     __device__ unsigned long wait(){
         unsigned long start, end;
-        LOG_CLOCK(start);
+        // LOG_CLOCK(start);
         __syncthreads();
         unsigned int tid = threadIdx.x;
-        if(tid < size){
-            buf[tid].wait();
+        for(unsigned int i = tid; i < size; i += blockDim.x * gridDim.x){
+            buf[i].wait();
         }
         __syncthreads();
-        LOG_CLOCK(end);
-        return end - start;
+        // LOG_CLOCK(end);
+        return 0; // end - start;
     }
 
 };

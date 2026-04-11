@@ -14,7 +14,7 @@
   #include <unistd.h>
 #endif
 
-namespace logger {
+namespace host_logger {
 
 enum class Level : int { Trace = 0, Debug, Info, Warn, Error, Fatal };
 
@@ -129,17 +129,17 @@ inline void rawf(const char* fmt, ...) {
   std::fflush(sink());
 }
 
-} // namespace logger
+} // namespace host_logger
 
 // ---- macros ----
 // Usage: LOG_INFO(TAG_STORAGE, "msg: %s", xxx);
 
-#define LOG_TRACE(tag, ...) ::logger::logf(::logger::Level::Trace, tag, __VA_ARGS__)
-#define LOG_DEBUG(tag, ...) ::logger::logf(::logger::Level::Debug, tag, __VA_ARGS__)
-#define LOG_INFO(tag, ...)  ::logger::logf(::logger::Level::Info,  tag, __VA_ARGS__)
-#define LOG_WARN(tag, ...)  ::logger::logf(::logger::Level::Warn,  tag, __VA_ARGS__)
-#define LOG_ERROR(tag, ...) ::logger::logf(::logger::Level::Error, tag, __VA_ARGS__)
-#define LOG_FATAL(tag, ...) ::logger::logf(::logger::Level::Fatal, tag, __VA_ARGS__)
+#define LOG_TRACE(tag, ...) ::host_logger::logf(::host_logger::Level::Trace, tag, __VA_ARGS__)
+#define LOG_DEBUG(tag, ...) ::host_logger::logf(::host_logger::Level::Debug, tag, __VA_ARGS__)
+#define LOG_INFO(tag, ...)  ::host_logger::logf(::host_logger::Level::Info,  tag, __VA_ARGS__)
+#define LOG_WARN(tag, ...)  ::host_logger::logf(::host_logger::Level::Warn,  tag, __VA_ARGS__)
+#define LOG_ERROR(tag, ...) ::host_logger::logf(::host_logger::Level::Error, tag, __VA_ARGS__)
+#define LOG_FATAL(tag, ...) ::host_logger::logf(::host_logger::Level::Fatal, tag, __VA_ARGS__)
 
 
 // ---- optional tag definitions (examples) ----

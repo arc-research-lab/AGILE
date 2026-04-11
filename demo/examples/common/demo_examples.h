@@ -40,8 +40,8 @@ inline const std::unordered_map<std::string, DemoExample>& get_demo_examples() {
             "examples/ctc/agile_demo_ctc",
             {} // uses its own defaults
         }},
-        {"bfs", {
-            "bfs",
+        {"bfs-agile", {
+            "bfs-agile",
             "BFS (AGILE)",
             "examples/bfs/agile_demo_bfs",
             {"-i", "test/bfs_verify.info.txt", "-s", "0"}

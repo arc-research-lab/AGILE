@@ -114,21 +114,21 @@ int main(int argc, char ** argv){
     unsigned int gpu_slot_num = 65536 * 8;
 
     // NVMe config
-    std::string nvme_device = "/dev/AGILE-NVMe-0000:01:00.0";
-    unsigned int queue_num = 15;
-    unsigned int queue_depth = 1024;
+    std::string nvme_device = "/dev/AGILE-NVMe-0000:e4:00.0";
+    unsigned int queue_num = 8;
+    unsigned int queue_depth = 512;
     unsigned int ssd_blk_offset = 0;
 
     // Parallelism config
     unsigned int block_dim = 1;
-    unsigned int thread_dim = 1024;
+    unsigned int thread_dim = 32;
     unsigned int agile_dim = 1;
 
     // CTC config
-    unsigned int buf_per_blk = 64;
+    unsigned int buf_per_blk = 4;
     unsigned int compute_sim = 65536;
-    unsigned int compute_itr = 1;
-    unsigned int iteration = 2;
+    unsigned int compute_itr = 490;
+    unsigned int iteration = 5000;
 
     app.add_option("-d,--dev", nvme_device, "NVMe device path");
     app.add_option("--slot-size", slot_size, "Slot size of the cache");
@@ -240,41 +240,15 @@ int main(int argc, char ** argv){
     /* ── Send results via IPC (if launched by the server) ─────────── */
     if (!ipc_queue.empty()) {
         demo_ipc::QueueClient ipc(ipc_queue);
-
-        ipc.send("=== CTC (Compute-Transfer Concurrency) Results ===");
-        {
-            std::ostringstream os;
-            os << "Compute only: " << compute_only_us << " us";
-            ipc.send(os.str());
-        }
-        {
-            std::ostringstream os;
-            os << "Load only:    " << load_only_us << " us";
-            ipc.send(os.str());
-        }
-        {
-            std::ostringstream os;
-            os << "Sync (L+C):   " << sync_us << " us";
-            ipc.send(os.str());
-        }
-        {
-            std::ostringstream os;
-            os << "Async (L+C):  " << async_us << " us";
-            ipc.send(os.str());
-        }
-        {
-            std::ostringstream os;
-            os << "CTC ratio (compute/load): "
-               << (double)compute_only_us / (double)load_only_us;
-            ipc.send(os.str());
-        }
-        {
-            std::ostringstream os;
-            os << "Async speedup over sync: "
-               << (double)sync_us / (double)async_us << "x";
-            ipc.send(os.str());
-        }
-
+        std::ostringstream os;
+        os << "{" << "\"compute_only_us\": " << compute_only_us << ", "
+           << "\"load_only_us\": " << load_only_us << ", "
+           << "\"sync_us\": " << sync_us << ", "
+           << "\"async_us\": " << async_us << ", "
+           << "\"ctc_ratio\": " << (double)compute_only_us / (double)load_only_us << ", "
+           << "\"async_speedup\": " << (double)sync_us / (double)async_us
+           << "}";
+        ipc.send(os.str());
         ipc.send_done();
     }
 

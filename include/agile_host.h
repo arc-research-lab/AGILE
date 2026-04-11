@@ -180,8 +180,37 @@ public:
 
     __host__ void setQueueNums(unsigned int queue_num){
         LOG_INFO("NVME", "setQueueNums requested: %u", queue_num);
-        volatile unsigned int * cmd = sq_ptr + asq_pos * 16;
 
+        // Get Features (opcode 0x0A) with FID 0x07 to query max supported queues
+        volatile unsigned int * cmd = sq_ptr + asq_pos * 16;
+        cmd[0] = 0x0A | (asq_pos << 16);
+        cmd[10] = 0x7;
+        cmd[11] = 0;
+        asq_pos = (asq_pos + 1) % this->admin_q_depth;
+        *admin_sqdb = asq_pos;
+
+        volatile unsigned int * cpl_get = cq_ptr + acq_pos * 4;
+        while(((cpl_get[3] >> 16) & 0x1) == this->phase){}
+        if(((cpl_get[3] >> 17) & 0x1) != 0){
+            LOG_WARN("NVME", "Get Features (Number of Queues) failed: %08x %08x %08x %08x",
+                static_cast<unsigned int>(cpl_get[0]),
+                static_cast<unsigned int>(cpl_get[1]),
+                static_cast<unsigned int>(cpl_get[2]),
+                static_cast<unsigned int>(cpl_get[3]));
+        } else {
+            unsigned int max_sq = ((cpl_get[0] >> 16) & 0xFFFF) + 1;
+            unsigned int max_cq = (cpl_get[0] & 0xFFFF) + 1;
+            LOG_INFO("NVME", "Max supported queues: SQ=%u CQ=%u", max_sq, max_cq);
+        }
+        acq_pos++;
+        if(acq_pos == this->admin_q_depth){
+            acq_pos = 0;
+            this->phase = ~(this->phase) & 0x1;
+        }
+        *admin_cqdb = acq_pos;
+
+        // Set Features (opcode 0x09) with FID 0x07 to request queue_num queues
+        cmd = sq_ptr + asq_pos * 16;
         cmd[0] = 0x09 | (asq_pos << 16);
         cmd[10] = 0x7;
         cmd[11] = ((queue_num - 1) << 16) | (queue_num - 1);
