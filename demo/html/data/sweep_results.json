@@ -1,0 +1,10 @@
+[
+  {"test":"bfs-g20-1","app":"bfs","ssd":"0000:01:00.0","agile-cold":"0.661959","agile-warm":"0.581868","bam-cold":"1.215438","bam-warm":"1.142901","gpu":"0.054512","md5":"MATCH"}
+,
+  {"test":"bfs-u20-1","app":"bfs","ssd":"0000:03:00.0","agile-cold":"0.398357","agile-warm":"0.033990","bam-cold":"0.495493","bam-warm":"0.289966","gpu":"0.012642","md5":"MATCH"}
+,
+  {"test":"pr-g19-1","app":"pr","ssd":"0000:e1:00.0","agile-cold":"1.214758","agile-warm":"1.097604","bam-cold":"1.703904","bam-warm":"1.660234","gpu":"0.043253","md5":"MATCH"}
+,
+  {"test":"pr-u19-1","app":"pr","ssd":"0000:e3:00.0","agile-cold":"0.308372","agile-warm":"0.046960","bam-cold":"0.594545","bam-warm":"0.431347","gpu":"0.022912","md5":"MATCH"}
+
+]

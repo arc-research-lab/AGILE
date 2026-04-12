@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AGILE Demo</title>
+    <link
+      href="vendor/bootstrap/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link
+      href="css/custom.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container demo-shell">
+      <div class="row justify-content-center w-100">
+        <div class="col-12 col-lg-9 col-xl-8">
+          <main class="demo-card p-4 p-md-5">
+            <div class="d-flex flex-column gap-2 mb-4">
+              <h1>AGILE Demo</h1>
+              <p class="text-body-secondary">
+                Connect to the C++ WebSocket server, then launch GPU/NVMe
+                examples directly from the browser.
+              </p>
+            </div>
+
+            <!-- Server connection -->
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-8">
+                <label class="form-label" for="server-host">Server IP or host</label>
+                <input
+                  id="server-host"
+                  class="form-control"
+                  type="text"
+                  value="192.168.98.8"
+                />
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="server-port">Server port</label>
+                <input
+                  id="server-port"
+                  class="form-control"
+                  type="number"
+                  min="1"
+                  max="65535"
+                  value="9002"
+                />
+              </div>
+            </div>
+
+            <div id="target-url" class="target-url mb-4">ws://192.168.98.10:9002</div>
+
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div class="status">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">Disconnected</span>
+              </div>
+              <button id="connect" class="btn btn-primary btn-sm" type="button">Connect</button>
+            </div>
+
+            <!-- BFS configuration (collapsible) -->
+            <div class="mb-4">
+              <a href="new-ui.html">New UI</a>
+            </div>
+
+
+            <!-- Manual message (kept for debugging / extensibility) -->
+            <div class="row g-3 align-items-end mb-3">
+              <div class="col-12 col-md">
+                <label class="form-label" for="message">Send raw message</label>
+                <input id="message" class="form-control" type="text" 
+                  placeholder='e.g. {"action":"run","example":"hello-world"}'/>
+              </div>
+              <div class="col-12 col-md-auto d-grid">
+                <button id="send" class="btn btn-secondary btn-sm" type="button">Send</button>
+              </div>
+            </div>
+
+
+
+            <!-- CTC Example Start -->
+            <div class="row align-items-center g-2 mb-3">
+              
+              <div class="col-auto d-grid">
+                <button id="ctc-run" class="btn btn-secondary btn-sm" type="button">Run CTC</button>
+              </div>
+              <div class="col-auto">
+                <button id="ctc-chart-btn" class="btn btn-outline-info btn-sm" type="button">Show Saved CTC</button>
+              </div>
+            </div>
+
+            <!-- CTC Chart -->
+            <div id="ctc-chart-wrap" style="height: 280px;">
+              <canvas id="ctc-chart" style="height: 280px;"></canvas>
+            </div>
+
+            
+            <!-- Graph Apps (BFS & PR sweep) -->
+            <div class="mb-3">
+              <label class="form-label">Graph Apps</label>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <button id="graph-btn" class="btn btn-primary btn-sm" type="button">
+                  Run
+                </button>
+                <button id="sweep-results-btn" class="btn btn-outline-secondary btn-sm" type="button">
+                  Load Saved Results
+                </button>
+              </div>
+            </div>
+
+            <div id="graph-chart-wrap" style="height: 380px;">
+              <canvas id="graph-breakdown-chart" style="height: 380px;"></canvas>
+            </div>
+
+            <!-- Register Report -->
+            <section class="reg-report-section mt-4 mb-4">
+              <div class="d-flex flex-column gap-2 mb-3">
+                <h2 class="section-title">Register Report</h2>
+                <p class="section-copy">Registers per thread for each GPU kernel.</p>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <button id="reg-report-btn" class="btn btn-primary btn-sm" type="button">Run Report</button>
+              </div>
+              <div id="reg-report-wrap" style="display:none;">
+                <table id="reg-report-table" class="reg-report-table">
+                  <thead>
+                    <tr>
+                      <th>Benchmark</th>
+                      <th>Kernel</th>
+                      <th>Registers</th>
+                      <th>Const Memory (B)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="dlrm-section mt-4">
+              <div class="d-flex flex-column gap-2 mb-3">
+                <h2 class="section-title">DLRM Charts</h2>
+                <p class="section-copy">Static comparison charts generated from the recorded DLRM benchmark data.</p>
+              </div>
+              <div class="dlrm-controls mb-3">
+                <button id="dlrm-config-btn" class="btn btn-outline-secondary btn-sm" type="button">Config Comparison</button>
+                <button id="dlrm-batch-btn" class="btn btn-outline-secondary btn-sm" type="button">Batch Size Sweep</button>
+                <button id="dlrm-queue-btn" class="btn btn-outline-secondary btn-sm" type="button">Queue Pair Sweep</button>
+                <button id="dlrm-cache-btn" class="btn btn-outline-secondary btn-sm" type="button">Cache Size Sweep</button>
+              </div>
+              <div id="dlrm-chart-wrap" class="dlrm-chart-card" style="display:none;">
+                <canvas id="dlrm-chart-canvas"></canvas>
+              </div>
+            </section>
+
+            <div id="log" class="log"></div>
+
+          </main>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+    
+    <!-- CTC Example End -->
+    <script
+      src="vendor/jquery/jquery-3.7.1.min.js"
+    ></script>
+    <script src="js/graph-breakdown-chart.js"></script>
+    <script
+      src="vendor/bootstrap/bootstrap.bundle.min.js"
+    ></script>
+    <script src="vendor/chartjs/chart.umd.min.js"></script>
+    <script src="js/ctc-chart.js"></script>
+    <script src="js/dlrm-charts.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
