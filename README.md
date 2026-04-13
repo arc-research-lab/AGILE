@@ -11,7 +11,7 @@ AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration
 
 
 ## Citation
-Paper is available at [arXiv](https://arxiv.org/abs/2504.19365)
+Paper is available at [SC'25](https://dl.acm.org/doi/10.1145/3712285.3759778) and [arXiv](https://arxiv.org/abs/2504.19365)
 ---
 ```bibtex
 @inproceedings{sc25agile,
