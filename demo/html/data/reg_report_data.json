@@ -1,0 +1,1 @@
+[{"label":"BFS (AGILE)","kernel":"bfs_kernel","regs":48,"cmem":396},{"label":"BFS (BAM)","kernel":"bfs_kernel_bam","regs":60,"cmem":392},{"label":"PageRank (AGILE)","kernel":"pagerank_kernel","regs":64,"cmem":408},{"label":"PageRank (BAM)","kernel":"pagerank_kernel_bam","regs":66,"cmem":408}]

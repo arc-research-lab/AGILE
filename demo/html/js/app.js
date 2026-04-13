@@ -7,6 +7,7 @@ const $serverHostInput = $("#server-host");
 const $serverPortInput = $("#server-port");
 const $targetUrl = $("#target-url");
 const $statusDot = $("#status-dot");
+const $brandStatusDot = $("#brand-status-dot");
 const $statusText = $("#status-text");
 const $messageInput = $("#message");
 const $connectButton = $("#connect");
@@ -16,6 +17,30 @@ const $log = $("#log");
 let socket = null;
 /* Track which example is currently running so we can disable its button. */
 let runningExample = null;
+
+function syncBrandStatusDot(connected) {
+  if (!$brandStatusDot.length) {
+    return;
+  }
+
+  if (connected) {
+    $brandStatusDot
+      .removeClass("disconnected")
+      .addClass("connected")
+      .css({
+        background: "#7bf2c9",
+        boxShadow: "0 0 0 0.25rem rgba(123, 242, 201, 0.16)",
+      });
+  } else {
+    $brandStatusDot
+      .removeClass("connected")
+      .addClass("disconnected")
+      .css({
+        background: "rgba(255, 210, 128, 0.78)",
+        boxShadow: "0 0 0 0.25rem rgba(255, 210, 128, 0.14)",
+      });
+  }
+}
 
 function loadSavedTarget() {
   const savedHost = localStorage.getItem(storageKeys.host);
@@ -46,6 +71,17 @@ function refreshTargetUrl() {
 }
 
 function addLogEntry(type, text) {
+  if (!$log.length) {
+    if (type === "meta") {
+      console.info(text);
+    } else if (type === "server") {
+      console.debug(text);
+    } else {
+      console.log(text);
+    }
+    return;
+  }
+
   const $entry = $("<div>")
     .addClass(`entry ${type}`)
     .text(text);
@@ -104,6 +140,7 @@ function handleServerMessage(raw) {
       $("#graph-btn").prop("disabled", false);
       $("#ctc-run").prop("disabled", false);
       $("#reg-report-btn").prop("disabled", false);
+      $("#reg-report-load-btn").prop("disabled", false);
       break;
 
     case "error":
@@ -112,6 +149,7 @@ function handleServerMessage(raw) {
       $("#graph-btn").prop("disabled", false);
       $("#ctc-run").prop("disabled", false);
       $("#reg-report-btn").prop("disabled", false);
+      $("#reg-report-load-btn").prop("disabled", false);
       break;
 
     case "bench-result":
@@ -155,9 +193,11 @@ function handleServerMessage(raw) {
 function updateStatus(connected) {
   if (connected) {
     $statusDot.removeClass("disconnected").addClass("connected");
+    syncBrandStatusDot(true);
     $statusText.text("Connected");
   } else {
     $statusDot.removeClass("connected").addClass("disconnected");
+    syncBrandStatusDot(false);
     $statusText.text("Disconnected");
   }
 }
@@ -284,12 +324,45 @@ function runRegReport() {
     addLogEntry("meta", "Connect to the server first");
     return;
   }
+  $("#reg-report-table tbody").empty();
+  $("#reg-report-table").removeClass("has-rows");
   $("#reg-report-btn").prop("disabled", true);
+  $("#reg-report-load-btn").prop("disabled", true);
   socket.send(JSON.stringify({ action: "reg-report" }));
 }
 
+function loadSavedRegReport() {
+  addLogEntry("meta", "Loading saved register report...");
+  $("#reg-report-table tbody").empty();
+  $("#reg-report-table").removeClass("has-rows");
+  $("#reg-report-load-btn").prop("disabled", true);
+
+  fetch("data/reg_report_data.json?t=" + Date.now())
+    .then((res) => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then((rows) => {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        addLogEntry("meta", "No saved register report found.");
+        $("#reg-report-table").removeClass("has-rows");
+        return;
+      }
+
+      renderRegReportTable(rows);
+      addLogEntry("meta", "Loaded saved register report.");
+    })
+    .catch((err) => {
+      addLogEntry("meta", "Failed to load saved register report: " + err.message);
+    })
+    .finally(() => {
+      $("#reg-report-load-btn").prop("disabled", false);
+    });
+}
+
 function renderRegReportTable(rows) {
-  var $tbody = $("#reg-report-table tbody").empty();
+  var $table = $("#reg-report-table");
+  var $tbody = $table.find("tbody").empty();
   rows.forEach(function (r) {
     $tbody.append(
       "<tr>" +
@@ -300,12 +373,17 @@ function renderRegReportTable(rows) {
       "</tr>"
     );
   });
+  $table.toggleClass("has-rows", rows.length > 0);
   $("#reg-report-wrap").show();
   $("#reg-report-btn").prop("disabled", false);
 }
 
 $("#reg-report-btn").on("click", function () {
   runRegReport();
+});
+
+$("#reg-report-load-btn").on("click", function () {
+  loadSavedRegReport();
 });
 
 $("#dlrm-config-btn").on("click", function () {
@@ -339,7 +417,7 @@ function loadSweepResults() {
         return;
       }
 
-      $("#graph-chart-wrap").show();
+      $("#graph-chart-wrap").removeClass("is-hidden").show();
       GraphBreakdownChart.init("graph-breakdown-chart");
       GraphBreakdownChart.reset();
 
@@ -360,7 +438,7 @@ function runSweep(args) {
     return;
   }
 
-  $("#graph-chart-wrap").show();
+  $("#graph-chart-wrap").removeClass("is-hidden").show();
   GraphBreakdownChart.init("graph-breakdown-chart");
   GraphBreakdownChart.reset();
 
@@ -386,7 +464,7 @@ function runCtcSweep() {
   }
 
   /* Show chart and reset for live streaming */
-  $("#ctc-chart-wrap").show();
+  $("#ctc-chart-wrap").removeClass("is-hidden").show();
   CtcChart.init("ctc-chart");
   CtcChart.resetLive();
 
@@ -402,34 +480,16 @@ $("#ctc-run").on("click", function () {
 });
 
 function loadSavedCtcSweep() {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    addLogEntry("meta", "Connect to the server first");
-    return;
-  }
-
-  $("#ctc-chart-wrap").show();
+  $("#ctc-chart-wrap").removeClass("is-hidden").show();
   CtcChart.init("ctc-chart");
-  CtcChart.resetLive();
-
-  socket.send(JSON.stringify({ action: "ctc-load-saved" }));
-  addLogEntry("client", "Load: saved ctc-sweep");
+  CtcChart.load("data/sweep_ctc_data.json");
+  addLogEntry("meta", "Loaded saved ctc-sweep data");
 }
 
 /* ── CTC Chart (Chart.js) – load saved data ────────────────────── */
 
 $("#ctc-chart-btn").on("click", function () {
-  var $container = $("#ctc-chart-wrap");
-
-  if ($container.is(":hidden")) {
-    $container.show();
-    $(this).text("Hide CTC Chart");
-
-    loadSavedCtcSweep();
-  } else {
-    $container.hide();
-    CtcChart.stopAnimation();
-    $(this).text("Show Saved CTC");
-  }
+  loadSavedCtcSweep();
 });
 
 

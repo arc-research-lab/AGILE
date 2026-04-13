@@ -8,9 +8,9 @@ var DlrmCharts = (function () {
   var rawData = null;
   var dataUrl = null;
   var COLORS = {
-    bam: "#4b82e6",
-    sync: "#ffb703",
-    async: "#b98144"
+    bam: "#7da6ff",
+    sync: "#ffd280",
+    async: "#7bf2c9"
   };
 
   var LABEL_PLUGIN = {
@@ -19,7 +19,7 @@ var DlrmCharts = (function () {
       var ctx = chart.ctx;
       ctx.save();
       ctx.font = "12px IBM Plex Sans, Segoe UI, sans-serif";
-      ctx.fillStyle = "#2f2c28";
+      ctx.fillStyle = "rgba(237, 245, 255, 0.86)";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
 
@@ -110,7 +110,7 @@ var DlrmCharts = (function () {
         title: {
           display: true,
           text: title,
-          color: "#616161",
+          color: "#edf5ff",
           font: {
             size: 16,
             weight: "600"
@@ -122,7 +122,7 @@ var DlrmCharts = (function () {
         legend: {
           position: "top",
           labels: {
-            color: "#4a4a4a",
+            color: "rgba(237, 245, 255, 0.82)",
             boxWidth: 18,
             boxHeight: 18,
             font: {
@@ -142,10 +142,10 @@ var DlrmCharts = (function () {
       scales: {
         x: {
           grid: {
-            color: "rgba(128, 128, 128, 0.16)"
+            color: "rgba(255, 255, 255, 0.12)"
           },
           ticks: {
-            color: "#505050",
+            color: "rgba(237, 245, 255, 0.78)",
             maxRotation: 0,
             autoSkip: false,
             font: {
@@ -155,7 +155,7 @@ var DlrmCharts = (function () {
           title: {
             display: true,
             text: xAxisLabel,
-            color: "#505050",
+            color: "rgba(237, 245, 255, 0.82)",
             font: {
               size: 13,
               weight: "600"
@@ -166,16 +166,16 @@ var DlrmCharts = (function () {
           min: yMin,
           max: yMax,
           grid: {
-            color: "rgba(128, 128, 128, 0.16)"
+            color: "rgba(255, 255, 255, 0.12)"
           },
           ticks: {
-            color: "#505050",
+            color: "rgba(237, 245, 255, 0.78)",
             stepSize: 0.2
           },
           title: {
             display: true,
             text: ["Speedup Normalized", "to BaM Baseline"],
-            color: "#505050",
+            color: "rgba(237, 245, 255, 0.82)",
             font: {
               size: 13,
               weight: "600"

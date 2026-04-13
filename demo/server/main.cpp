@@ -171,7 +171,13 @@ void run_example(WsSession& session, const DemoExample& ex,
 fs::path ctc_saved_results_path(const std::string& build_dir) {
 	fs::path resolved = resolve_build_dir(build_dir);
 	fs::path demo_dir = resolved.parent_path();
-	return demo_dir / "data" / "ctc_sweep_latest.json";
+	return demo_dir / "html" / "data" / "sweep_ctc_data.json";
+}
+
+fs::path reg_report_saved_results_path(const std::string& build_dir) {
+	fs::path resolved = resolve_build_dir(build_dir);
+	fs::path demo_dir = resolved.parent_path();
+	return demo_dir / "html" / "data" / "reg_report_data.json";
 }
 
 void replay_saved_ctc_sweep(WsSession& session, const std::string& build_dir) {
@@ -223,6 +229,7 @@ void run_ctc_sweep(WsSession& session, const std::string& build_dir,
 {
 	fs::path resolved = resolve_build_dir(build_dir);
 	fs::path bin_path = resolved / "examples" / "ctc" / "agile_demo_ctc";
+	fs::path save_path = ctc_saved_results_path(build_dir);
 
 	if (!fs::exists(bin_path)) {
 		session.send(json_msg("error", "ctc-sweep",
@@ -247,6 +254,23 @@ void run_ctc_sweep(WsSession& session, const std::string& build_dir,
 	const std::string dev = "/dev/AGILE-NVMe-" + bdf_val;
 	std::vector<std::string> saved_rows;
 	saved_rows.reserve(((2000 - 20) / 20) + 1);
+
+	std::error_code ec;
+	fs::create_directories(save_path.parent_path(), ec);
+	if (ec) {
+		session.send(json_msg("error", "ctc-sweep",
+				"Failed to prepare save directory for " + save_path.string() + ": " + ec.message()));
+		return;
+	}
+
+	if (fs::exists(save_path)) {
+		fs::remove(save_path, ec);
+		if (ec) {
+			session.send(json_msg("error", "ctc-sweep",
+					"Failed to delete stale CTC results at " + save_path.string() + ": " + ec.message()));
+			return;
+		}
+	}
 
 	session.send(json_msg("start", "ctc-sweep",
 			"Launching CTC sweep on " + dev + " (compute_itr 20..2000, step 20) ..."));
@@ -324,30 +348,27 @@ void run_ctc_sweep(WsSession& session, const std::string& build_dir,
 
 		/* Send per-step JSON result. */
 		std::string row = "{\"compute_itr\":" + std::to_string(citr) +
-		                  ",\"sync_time\":\"" + sync_time +
-		                  "\",\"async_time\":\"" + async_time +
-		                  "\",\"ctc\":\"" + ctc_val +
-		                  "\",\"speedup\":\"" + speedup_val + "\"}";
+		                  ",\"sync_time\":" + sync_time +
+		                  ",\"async_time\":" + async_time +
+		                  ",\"ctc\":" + ctc_val +
+		                  ",\"speedup\":" + speedup_val + "}";
 		saved_rows.push_back(row);
 		std::string msg = "{\"type\":\"bench-result\",\"example\":\"ctc-sweep\",\"data\":"
 		                + row + "}";
 		session.send(msg);
 	}
 
-	fs::path save_path = ctc_saved_results_path(build_dir);
-	std::error_code ec;
-	fs::create_directories(save_path.parent_path(), ec);
 	std::ofstream output(save_path, std::ios::trunc);
 	if (!output) {
 		session.send(json_msg("error", "ctc-sweep",
 				"Failed to save CTC results to " + save_path.string()));
 	} else {
-		output << "[\n";
+		output << "{\n  \"sweep_ctc_02\": [\n";
 		for (std::size_t index = 0; index < saved_rows.size(); ++index) {
 			if (index != 0) output << ",\n";
-			output << "  " << saved_rows[index];
+			output << "    " << saved_rows[index];
 		}
-		output << "\n]\n";
+		output << "\n  ]\n}\n";
 	}
 
 	session.send(json_msg("done", "ctc-sweep", "CTC sweep finished."));
@@ -418,9 +439,39 @@ void run_sweep(WsSession& session, const std::string& build_dir,
 
 /* ── register report ─────────────────────────────────────────── */
 
+void replay_saved_reg_report(WsSession& session, const std::string& build_dir) {
+	fs::path save_path = reg_report_saved_results_path(build_dir);
+	if (!fs::exists(save_path)) {
+		session.send(json_msg("error", "reg-report",
+				"Saved register report not found: " + save_path.string()));
+		return;
+	}
+
+	std::ifstream input(save_path);
+	if (!input) {
+		session.send(json_msg("error", "reg-report",
+				"Failed to open saved register report: " + save_path.string()));
+		return;
+	}
+
+	std::string contents((std::istreambuf_iterator<char>(input)),
+	                    std::istreambuf_iterator<char>());
+	if (contents.empty()) {
+		session.send(json_msg("error", "reg-report",
+				"Saved register report is empty: " + save_path.string()));
+		return;
+	}
+
+	session.send(json_msg("start", "reg-report",
+			"Loading saved register report from " + save_path.string()));
+	session.send("{\"type\":\"reg-report\",\"data\":" + contents + "}");
+	session.send(json_msg("done", "reg-report", "Loaded saved register report."));
+}
+
 void run_reg_report(WsSession& session, const std::string& build_dir) {
 	fs::path resolved = resolve_build_dir(build_dir);
 	fs::path bin = resolved / "examples" / "reg-report" / "agile_demo_reg_report";
+	fs::path save_path = reg_report_saved_results_path(build_dir);
 
 	if (!fs::exists(bin)) {
 		session.send(json_msg("error", "reg-report",
@@ -516,6 +567,22 @@ void run_reg_report(WsSession& session, const std::string& build_dir) {
 		return;
 	}
 
+	std::error_code ec;
+	fs::create_directories(save_path.parent_path(), ec);
+	if (ec) {
+		session.send(json_msg("error", "reg-report",
+				"Failed to prepare save directory for " + save_path.string() + ": " + ec.message()));
+		return;
+	}
+
+	std::ofstream output(save_path, std::ios::trunc);
+	if (!output) {
+		session.send(json_msg("error", "reg-report",
+				"Failed to save register report to " + save_path.string()));
+		return;
+	}
+	output << rows.str() << "\n";
+
 	/* Send structured result. */
 	std::string msg = "{\"type\":\"reg-report\",\"data\":" + rows.str() + "}";
 	session.send(msg);
@@ -594,6 +661,9 @@ void handle_session(tcp::socket socket, const std::string& build_dir) {
 
 		} else if (action == "reg-report") {
 			run_reg_report(session, build_dir);
+
+		} else if (action == "reg-report-load-saved") {
+			replay_saved_reg_report(session, build_dir);
 
 		} else {
 			/* Echo fallback for plain text messages */

@@ -7,39 +7,40 @@ var CtcChart = (function () {
   var canvasId = null;
   var rawData = null;
   var animTimer = null;
+  var VISIBLE_KEYS = ["sweep_ctc_02"];
 
   /* Friendly labels for each series key */
   var LABELS = {
-    sweep_ctc:    "4-SSD Aggregate",
-    sweep_ctc_01: "SSD #1 (run A)",
-    sweep_ctc_02: "SSD #2 (run A)",
-    sweep_ctc_03: "SSD #3 (run A)",
-    sweep_ctc_04: "SSD #4 (run A)",
-    sweep_ctc_e1: "SSD #1 (run B)",
-    sweep_ctc_e2: "SSD #2 (run B)",
-    sweep_ctc_e3: "SSD #3 (run B)",
-    sweep_ctc_e4: "SSD #4 (run B)",
+    sweep_ctc_02: "Async I/O",
   };
 
   /* Colour palette */
   var COLORS = [
-    "#5470c6", "#91cc75", "#fac858", "#ee6666",
-    "#73c0de", "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc"
+    "#7bf2c9", "#65c9ff", "#ffd280", "#9ec5ff"
   ];
 
-  var LIVE_COLOR = "#00e5ff";
-  var IDEAL_COLOR = "#f567ba";
+  var LIVE_COLOR = "#65c9ff";
+  var LIVE_FILL_COLOR = "rgba(101, 201, 255, 0.22)";
+  var BASELINE_COLOR = "#9aa5b5";
+  var IDEAL_COLOR = "#ffd280";
   var X_AXIS_MIN = 0;
   var X_AXIS_MAX = 2;
 
   /* ── Helpers ────────────────────────────────────────────────── */
 
   function sortedKeys(obj) {
-    return Object.keys(obj).sort(function (a, b) {
-      if (a === "sweep_ctc") return -1;
-      if (b === "sweep_ctc") return 1;
-      return a < b ? -1 : a > b ? 1 : 0;
+    return VISIBLE_KEYS.filter(function (key) {
+      return Object.prototype.hasOwnProperty.call(obj, key);
     });
+  }
+
+  function pickVisibleSeries(data) {
+    return VISIBLE_KEYS.reduce(function (accumulator, key) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        accumulator[key] = data[key];
+      }
+      return accumulator;
+    }, {});
   }
 
   function destroyChart() {
@@ -74,6 +75,25 @@ var CtcChart = (function () {
       backgroundColor: IDEAL_COLOR,
       borderWidth: 2,
       borderDash: [8, 6],
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      showLine: true,
+      fill: false,
+      tension: 0,
+    };
+  }
+
+  function buildSyncBaselineDataset() {
+    return {
+      label: "Sync I/O Baseline",
+      data: [
+        { x: X_AXIS_MIN, y: 1 },
+        { x: X_AXIS_MAX, y: 1 },
+      ],
+      borderColor: BASELINE_COLOR,
+      backgroundColor: BASELINE_COLOR,
+      borderWidth: 2,
+      borderDash: [4, 4],
       pointRadius: 0,
       pointHoverRadius: 0,
       showLine: true,
@@ -122,6 +142,8 @@ var CtcChart = (function () {
         },
         y: {
           type: "linear",
+          min: 0.8,
+          max: 2.0,
           title: { display: true, text: "Speedup (×)", color: "#aaa", font: { size: 13 } },
           ticks: { color: "#aaa" },
           grid: { color: "#333" },
@@ -144,7 +166,7 @@ var CtcChart = (function () {
         return res.json();
       })
       .then(function (json) {
-        rawData = json;
+        rawData = pickVisibleSeries(json);
         renderAnimated();
       })
       .catch(function (err) {
@@ -174,7 +196,7 @@ var CtcChart = (function () {
         tension: 0.3,
       };
     });
-    datasets.push(buildIdealDataset());
+    datasets.push(buildSyncBaselineDataset(), buildIdealDataset());
 
     chart = new Chart(document.getElementById(canvasId), {
       type: "scatter",
@@ -211,7 +233,7 @@ var CtcChart = (function () {
         tension: 0.3,
       };
     });
-    datasets.push(buildIdealDataset());
+    datasets.push(buildSyncBaselineDataset(), buildIdealDataset());
 
     chart = new Chart(document.getElementById(canvasId), {
       type: "scatter",
@@ -264,17 +286,17 @@ var CtcChart = (function () {
       type: "scatter",
       data: {
         datasets: [{
-          label: "Live CTC Sweep",
+          label: "Async I/O",
           data: [],
           borderColor: LIVE_COLOR,
-          backgroundColor: "rgba(0,229,255,0.25)",
+          backgroundColor: LIVE_FILL_COLOR,
           borderWidth: 2.5,
           pointRadius: 5,
           pointBackgroundColor: LIVE_COLOR,
           showLine: true,
           fill: true,
           tension: 0.3,
-        }, buildIdealDataset()],
+        }, buildSyncBaselineDataset(), buildIdealDataset()],
       },
       options: baseOptions("Live CTC Sweep \u2014 Speedup vs. CTC Ratio"),
     });

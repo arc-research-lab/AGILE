@@ -1,10 +1,10 @@
 [
-  {"test":"bfs-g20-1","app":"bfs","ssd":"0000:01:00.0","agile-cold":"0.661959","agile-warm":"0.581868","bam-cold":"1.215438","bam-warm":"1.142901","gpu":"0.054512","md5":"MATCH"}
+  {"test":"bfs-g20-1","app":"bfs","ssd":"0000:01:00.0","agile-cold":"0.683182","agile-warm":"0.578736","bam-cold":"1.212216","bam-warm":"1.141290","gpu":"0.055126","md5":"MATCH"}
 ,
-  {"test":"bfs-u20-1","app":"bfs","ssd":"0000:03:00.0","agile-cold":"0.398357","agile-warm":"0.033990","bam-cold":"0.495493","bam-warm":"0.289966","gpu":"0.012642","md5":"MATCH"}
+  {"test":"bfs-u20-1","app":"bfs","ssd":"0000:03:00.0","agile-cold":"0.399816","agile-warm":"0.033988","bam-cold":"0.446682","bam-warm":"0.288162","gpu":"0.012623","md5":"MATCH"}
 ,
-  {"test":"pr-g19-1","app":"pr","ssd":"0000:e1:00.0","agile-cold":"1.214758","agile-warm":"1.097604","bam-cold":"1.703904","bam-warm":"1.660234","gpu":"0.043253","md5":"MATCH"}
+  {"test":"pr-g19-1","app":"pr","ssd":"0000:e1:00.0","agile-cold":"1.207259","agile-warm":"1.093409","bam-cold":"1.691315","bam-warm":"1.621517","gpu":"0.042583","md5":"MATCH"}
 ,
-  {"test":"pr-u19-1","app":"pr","ssd":"0000:e3:00.0","agile-cold":"0.308372","agile-warm":"0.046960","bam-cold":"0.594545","bam-warm":"0.431347","gpu":"0.022912","md5":"MATCH"}
+  {"test":"pr-u19-1","app":"pr","ssd":"0000:e3:00.0","agile-cold":"0.307189","agile-warm":"0.047288","bam-cold":"0.599739","bam-warm":"0.431471","gpu":"0.022928","md5":"MATCH"}
 
 ]

@@ -1,183 +1,943 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AGILE Demo</title>
-    <link
-      href="vendor/bootstrap/bootstrap.min.css"
-      rel="stylesheet"
-    />
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AGILE Demo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="css/index.css" />
+    </head>
 
-    <link
-      href="css/custom.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div class="container demo-shell">
-      <div class="row justify-content-center w-100">
-        <div class="col-12 col-lg-9 col-xl-8">
-          <main class="demo-card p-4 p-md-5">
-            <div class="d-flex flex-column gap-2 mb-4">
-              <h1>AGILE Demo</h1>
-              <p class="text-body-secondary">
-                Connect to the C++ WebSocket server, then launch GPU/NVMe
-                examples directly from the browser.
-              </p>
+    <body>
+        <header class="topbar">
+            <button
+                class="brand brand-button"
+                id="connectionToggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="connectionFlyout"
+                aria-label="Open server connection settings"
+            >
+                <span class="brand-mark disconnected" id="brand-status-dot"></span>
+                <span>AGILE Demo</span>
+            </button>
+            <div class="progress-shell" aria-hidden="true">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </header>
+
+        <div class="connection-backdrop" id="connectionBackdrop"></div>
+
+        <aside class="connection-flyout" id="connectionFlyout" aria-labelledby="connection-panel-title" aria-hidden="true">
+            <div class="connection-flyout-top">
+                <div>
+                    <span class="eyebrow">Connection Target</span>
+                    
+                </div>
+                
+                <button class="connection-close" id="connectionClose" type="button" aria-label="Close connection settings">x</button>
+            </div>
+            <h3 class="connection-title" id="connection-panel-title">Server IP and port</h3>
+            <p class="connection-copy">
+                Config the AGILE demo UI with the machine running the demo server. See <a href="https://github.com/arc-research-lab/AGILE" target="_blank" rel="noopener">AGILE GitHub repository</a> for demo server setup instructions.
+            </p>
+
+            <div class="connection-grid">
+                <label class="field-group" for="server-host">
+                    <span class="field-label">Server IP or host</span>
+                    <input
+                        class="field-input"
+                        id="server-host"
+                        type="text"
+                        value="192.168.98.8"
+                        placeholder="192.168.98.8"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                </label>
+
+                <label class="field-group" for="server-port">
+                    <span class="field-label">Port</span>
+                    <input
+                        class="field-input"
+                        id="server-port"
+                        type="number"
+                        min="1"
+                        max="65535"
+                        value="9002"
+                        placeholder="9002"
+                    />
+                </label>
             </div>
 
-            <!-- Server connection -->
-            <div class="row g-3 mb-3">
-              <div class="col-12 col-md-8">
-                <label class="form-label" for="server-host">Server IP or host</label>
-                <input
-                  id="server-host"
-                  class="form-control"
-                  type="text"
-                  value="192.168.98.8"
-                />
-              </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="server-port">Server port</label>
-                <input
-                  id="server-port"
-                  class="form-control"
-                  type="number"
-                  min="1"
-                  max="65535"
-                  value="9002"
-                />
-              </div>
+            <div class="target-preview">
+                <span class="target-preview-label">Target endpoint</span>
+                <div class="target-preview-value" id="target-url">ws://192.168.98.8:9002</div>
             </div>
 
-            <div id="target-url" class="target-url mb-4">ws://192.168.98.10:9002</div>
-
-            <div class="d-flex align-items-center gap-3 mb-4">
-              <div class="status">
-                <span id="status-dot" class="status-dot"></span>
+            <div class="connection-status" aria-live="polite">
+                <span class="status-dot disconnected" id="status-dot"></span>
                 <span id="status-text">Disconnected</span>
-              </div>
-              <button id="connect" class="btn btn-primary btn-sm" type="button">Connect</button>
             </div>
 
-            <!-- BFS configuration (collapsible) -->
-            <div class="mb-4">
-              <a href="new-ui.html">New UI</a>
+            <div class="action-row">
+                <button class="action-button primary" id="connect" type="button">Connect</button>
             </div>
 
+        </aside>
 
-            <!-- Manual message (kept for debugging / extensibility) -->
-            <div class="row g-3 align-items-end mb-3">
-              <div class="col-12 col-md">
-                <label class="form-label" for="message">Send raw message</label>
-                <input id="message" class="form-control" type="text" 
-                  placeholder='e.g. {"action":"run","example":"hello-world"}'/>
-              </div>
-              <div class="col-12 col-md-auto d-grid">
-                <button id="send" class="btn btn-secondary btn-sm" type="button">Send</button>
-              </div>
-            </div>
-
-
-
-            <!-- CTC Example Start -->
-            <div class="row align-items-center g-2 mb-3">
-              
-              <div class="col-auto d-grid">
-                <button id="ctc-run" class="btn btn-secondary btn-sm" type="button">Run CTC</button>
-              </div>
-              <div class="col-auto">
-                <button id="ctc-chart-btn" class="btn btn-outline-info btn-sm" type="button">Show Saved CTC</button>
-              </div>
-            </div>
-
-            <!-- CTC Chart -->
-            <div id="ctc-chart-wrap" style="height: 280px;">
-              <canvas id="ctc-chart" style="height: 280px;"></canvas>
-            </div>
-
-            
-            <!-- Graph Apps (BFS & PR sweep) -->
-            <div class="mb-3">
-              <label class="form-label">Graph Apps</label>
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <button id="graph-btn" class="btn btn-primary btn-sm" type="button">
-                  Run
-                </button>
-                <button id="sweep-results-btn" class="btn btn-outline-secondary btn-sm" type="button">
-                  Load Saved Results
-                </button>
-              </div>
-            </div>
-
-            <div id="graph-chart-wrap" style="height: 380px;">
-              <canvas id="graph-breakdown-chart" style="height: 380px;"></canvas>
-            </div>
-
-            <!-- Register Report -->
-            <section class="reg-report-section mt-4 mb-4">
-              <div class="d-flex flex-column gap-2 mb-3">
-                <h2 class="section-title">Register Report</h2>
-                <p class="section-copy">Registers per thread for each GPU kernel.</p>
-              </div>
-              <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <button id="reg-report-btn" class="btn btn-primary btn-sm" type="button">Run Report</button>
-              </div>
-              <div id="reg-report-wrap" style="display:none;">
-                <table id="reg-report-table" class="reg-report-table">
-                  <thead>
-                    <tr>
-                      <th>Benchmark</th>
-                      <th>Kernel</th>
-                      <th>Registers</th>
-                      <th>Const Memory (B)</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
+        <main>
+            <section class="intro">
+                <div class="intro-copy">
+                    <div class="intro-layout">
+                        <div class="intro-main">
+                            <span class="eyebrow">AGILE Demo</span>
+                            <div class="paper-title-row">
+                                <h2 class="paper-title" id="paperTitle" aria-label="AGILE: Lightweight and Efficient Asynchronous GPU-SSD Integration">
+                                    <span class="paper-title-prefix" aria-hidden="true">
+                                        <span class="paper-acronym">
+                                            <span class="paper-acronym-letter" data-slot="A">A</span>
+                                            <span class="paper-acronym-letter" data-slot="G">G</span>
+                                            <span class="paper-acronym-letter" data-slot="I">I</span>
+                                            <span class="paper-acronym-letter" data-slot="L">L</span>
+                                            <span class="paper-acronym-letter" data-slot="E">E</span>
+                                        </span>
+                                        <span class="paper-title-colon">:</span>
+                                    </span>
+                                    <span class="paper-title-phrase" aria-hidden="true">
+                                        <span class="paper-title-spacer">AGILE:&nbsp;</span>
+                                        <span class="paper-word" data-key="L"><span class="paper-word-initial">L</span>ightweight</span>
+                                        <span class="paper-word-connector">and</span>
+                                        <span class="paper-word" data-key="E"><span class="paper-word-initial">E</span>fficient</span>
+                                        <span class="paper-word" data-key="A"><span class="paper-word-initial">A</span>sync<span class="paper-word-rest">hronous</span></span>
+                                        <span class="paper-word" data-key="G"><span class="paper-word-initial">G</span>PU-SSD</span>
+                                        <span class="paper-word" data-key="I"><span class="paper-word-initial">I</span>ntegration</span>
+                                    </span>
+                                </h2>
+                            </div>
+                            <div class="intro-summary-row">
+                                <p class="lede">
+                                    AGILE is the first system to enable asynchronous, GPU-initiated communication with NVMe SSDs. AGILE overlaps data transfers with computation to maximize parallelism and utilization. It incorporates a lightweight GPU-resident runtime, a deadlock-free asynchronous execution model, and a flexible HBM-based software cache with customizable policies. Together, these features minimize latency and overhead, delivering substantial performance gains for data-intensive workloads.
+                                </p>
+                                <img class="paper-title-logo" id="paperTitleLogo" src="images/AGILE-logo1.png" alt="AGILE logo" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
-            <section class="dlrm-section mt-4">
-              <div class="d-flex flex-column gap-2 mb-3">
-                <h2 class="section-title">DLRM Charts</h2>
-                <p class="section-copy">Static comparison charts generated from the recorded DLRM benchmark data.</p>
-              </div>
-              <div class="dlrm-controls mb-3">
-                <button id="dlrm-config-btn" class="btn btn-outline-secondary btn-sm" type="button">Config Comparison</button>
-                <button id="dlrm-batch-btn" class="btn btn-outline-secondary btn-sm" type="button">Batch Size Sweep</button>
-                <button id="dlrm-queue-btn" class="btn btn-outline-secondary btn-sm" type="button">Queue Pair Sweep</button>
-                <button id="dlrm-cache-btn" class="btn btn-outline-secondary btn-sm" type="button">Cache Size Sweep</button>
-              </div>
-              <div id="dlrm-chart-wrap" class="dlrm-chart-card" style="display:none;">
-                <canvas id="dlrm-chart-canvas"></canvas>
-              </div>
+            <section class="scrollytelling" id="scrollytelling">
+                <div class="sticky-stage">
+                    <div class="stage-backdrop"></div>
+
+                    <div class="stage-dots" id="stageDots" aria-label="Panel navigation">
+                        <button class="stage-dot" type="button" aria-label="Go to panel 1"></button>
+                        <button class="stage-dot" type="button" aria-label="Go to panel 2"></button>
+                        <button class="stage-dot" type="button" aria-label="Go to panel 3"></button>
+                        <button class="stage-dot" type="button" aria-label="Go to panel 4"></button>
+                    </div>
+
+                    <div class="panel-stack" id="panelStack">
+                        <article class="panel" data-panel>
+                            <div class="panel-copy">
+                                <div class="panel-body">
+                                    <span class="panel-index">01 / CTC Sweep</span>
+                                    <p>
+                                        Demonstrate AGILE's ability to overlap computation and NVMe I/O by varying the computation-to-communication (CTC) ratio.
+                                    </p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button class="action-button primary" id="ctc-run" type="button">Run Live CTC</button>
+                                    <button class="action-button" id="ctc-chart-btn" type="button">Replay Saved CTC</button>
+                                </div>
+                            </div>
+                            <div class="panel-art chart-panel-art">
+                                <div class="panel-chart-shell">
+                                    <div class="panel-chart-frame" id="ctc-chart-wrap">
+                                        <canvas id="ctc-chart"></canvas>
+                                    </div>
+                                    <div class="panel-chart-note">Note: Data are collected from ASUS Pro WS WRX90E-SAGE SE with NVIDIA RTX 5000 Ada & Samsung 9100 PRO 1TB SSD</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="panel" data-panel>
+                            <div class="panel-copy graph-panel-copy">
+                                <div class="panel-body">
+                                    <span class="panel-index">02 / Graph Applications</span>
+                                    <p>
+                                        Evaluate AGILE on memory-bounded graph workloads with irregular memory access patterns, showing reduced software cache and NVMe I/O overhead compared to BaM.
+                                    </p>
+                                </div>
+                                <div class="panel-actions graph-panel-actions">
+                                    <button class="action-button primary" id="graph-btn" type="button">Run Live Graph</button>
+                                    <button class="action-button" id="sweep-results-btn" type="button">Reload Saved Graph</button>
+                                </div>
+                            </div>
+                            <div class="panel-art chart-panel-art graph-panel-art">
+                                <div class="panel-chart-shell graph-panel-chart-shell">
+                                    <div class="panel-chart-frame graph-panel-chart-frame" id="graph-chart-wrap">
+                                        <canvas id="graph-breakdown-chart"></canvas>
+                                    </div>
+                                    <div class="panel-chart-note">Note: Data are collected from ASUS Pro WS WRX90E-SAGE SE with NVIDIA RTX 5000 Ada & Samsung 9100 PRO 1TB SSD</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="panel" data-panel>
+                            <div class="panel-copy">
+                                <div class="panel-body">
+                                    <span class="panel-index">03 / Register Report</span>
+                                    <p>
+                                        Analyzes per-thread GPU register consumption across CUDA kernels, showing that AGILE is more lightweight and improves resource efficiency compared to BaM.
+                                    </p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button class="action-button primary" id="reg-report-btn" type="button">Run Reg Report</button>
+                                    <button class="action-button" id="reg-report-load-btn" type="button">Load Saved</button>
+                                </div>
+                            </div>
+                            <div class="panel-art chart-panel-art">
+                                <div class="panel-chart-shell">
+                                    <div class="panel-chart-frame panel-table-frame" id="reg-report-wrap">
+                                        <table class="reg-report-table" id="reg-report-table">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Label</th>
+                                                    <th scope="col">Kernel</th>
+                                                    <th scope="col">Regs</th>
+                                                    <th scope="col">CMEM (B)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                        <div class="reg-report-empty">Run the register report to populate this table.</div>
+                                    </div>
+                                    <div class="panel-chart-note">Note: Kernels are compiled for NVIDIA RTX 5000 Ada with CUDA 12.0</div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="panel" data-panel>
+                            <div class="panel-copy">
+                                <div class="panel-body">
+                                    <span class="panel-index">04 / DLRM Microbenchmark</span>
+                                    <p>
+                                        Uses the Criteo dataset to assess large-scale recommendation inference, where AGILE optimizes embedding access from SSDs and reduces end-to-end execution time.
+                                    </p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button class="action-button is-active" id="dlrm-config-btn" type="button">Config</button>
+                                    <button class="action-button" id="dlrm-batch-btn" type="button">Batch</button>
+                                    <button class="action-button" id="dlrm-queue-btn" type="button">Queue</button>
+                                    <button class="action-button" id="dlrm-cache-btn" type="button">Cache</button>
+                                </div>
+                            </div>
+                            <div class="panel-art chart-panel-art dlrm-panel-art">
+                                <div class="panel-chart-shell">
+                                    <div class="panel-chart-frame" id="dlrm-chart-wrap">
+                                        <canvas id="dlrm-chart-canvas"></canvas>
+                                    </div>
+                                    <div class="panel-chart-note">Note: Data are collected from Dell R750 with NVIDIA RTX 5000 Ada & Dell Ent NVMe AGN MU AIC 1.6TB SSD</div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="scroll-hint">Scroll to switch demos</div>
+                </div>
             </section>
 
-            <div id="log" class="log"></div>
+            <section class="outro">
+                <div class="outro-copy related-works-copy">
+                    <span class="eyebrow">Next Step</span>
+                    <!-- <h2>Related Works in GPU-SSD P2P Integration</h2> -->
+                    <div class="related-works-shell">
+                        <div class="related-works-map" id="relatedWorksMap" aria-label="Interactive map of related GPU-SSD work">
+                            <div class="related-axis related-axis-y">Functionality</div>
+                            <div class="related-axis related-axis-x">Efficiency</div>
+                            <div class="related-axis-arrow related-axis-arrow-y" aria-hidden="true"></div>
+                            <div class="related-axis-arrow related-axis-arrow-x" aria-hidden="true"></div>
 
-          </main>
-        </div>
-      </div>
-    </div>
+                            <button
+                                class="related-node node-gds"
+                                type="button"
+                                data-title="GPUDirect Storage"
+                                data-subtitle="NVIDIA"
+                                data-features="File system abstraction"
+                                data-shortcomings="CPU-initiated"
+                            >
+                                <span class="related-node-title">GPUDirect Storage</span>
+                                <span class="related-node-subtitle">NVIDIA</span>
+                            </button>
 
+                            <button
+                                class="related-node node-geminifs"
+                                type="button"
+                                data-title="GeminiFS"
+                                data-subtitle="FAST'25 · XMU & SJTU"
+                                data-features="GPU-initiated|File system abstraction"
+                            >
+                                <span class="related-node-title">GeminiFS</span>
+                                <span class="related-node-subtitle">FAST'25</span>
+                            </button>
 
+                            <button
+                                class="related-node node-gofs"
+                                type="button"
+                                data-title="GoFS"
+                                data-subtitle="SOSP'25 · UIUC"
+                                data-features="GPU-initiated|File system abstraction"
+                            >
+                                <span class="related-node-title">GoFS</span>
+                                <span class="related-node-subtitle">SOSP'25</span>
+                            </button>
 
+                            <button
+                                class="related-node node-gmt"
+                                type="button"
+                                data-title="GMT"
+                                data-subtitle="ASPLOS'24 · PSU & NVIDIA"
+                                data-features="GPU-initiated|System DRAM for caching"
+                                data-shortcomings="No file system abstraction"
+                            >
+                                <span class="related-node-title">GMT</span>
+                                <span class="related-node-subtitle">ASPLOS'24</span>
+                            </button>
 
+                            <button
+                                class="related-node node-bam"
+                                type="button"
+                                data-title="BaM"
+                                data-subtitle="ASPLOS'23 · UIUC & NVIDIA"
+                                data-features="GPU-initiated"
+                                data-shortcomings="No file system abstraction"
+                            >
+                                <span class="related-node-title">BaM</span>
+                                <span class="related-node-subtitle">ASPLOS'23</span>
+                            </button>
 
-    
-    <!-- CTC Example End -->
-    <script
-      src="vendor/jquery/jquery-3.7.1.min.js"
-    ></script>
-    <script src="js/graph-breakdown-chart.js"></script>
-    <script
-      src="vendor/bootstrap/bootstrap.bundle.min.js"
-    ></script>
-    <script src="vendor/chartjs/chart.umd.min.js"></script>
-    <script src="js/ctc-chart.js"></script>
-    <script src="js/dlrm-charts.js"></script>
-    <script src="js/app.js"></script>
-  </body>
+                            <button
+                                class="related-node node-agio"
+                                type="button"
+                                data-title="AGIO"
+                                data-subtitle="ASPLOS'26 · PSU & NVIDIA"
+                                data-features="GPU-initiated"
+                                data-shortcomings="No file system abstraction"
+                            >
+                                <span class="related-node-title">AGIO</span>
+                                <span class="related-node-subtitle">ASPLOS'26</span>
+                            </button>
+
+                            <button
+                                class="related-node related-node-image node-agile-next"
+                                type="button"
+                                data-title="Agile-Next"
+                                data-subtitle="Ongoing"
+                                data-features="GPU-initiated|File system abstraction|???"
+                            >
+                                <img src="images/agile-next.png" alt="Agile-Next logo" />
+                                <span class="related-node-title">Agile-Next</span>
+                                <span class="related-node-subtitle">Ongoing</span>
+                            </button>
+
+                            <button
+                                class="related-node related-node-image node-agile is-default"
+                                type="button"
+                                data-title="AGILE"
+                                data-subtitle="SC'25 · Ours"
+                                data-features="GPU-initiated|Asynchronous I/O|Flexible software cache"
+                                data-shortcomings="No file system abstraction"
+                            >
+                                <img src="images/AGILE-logo1.png" alt="AGILE logo" />
+                                <span class="related-node-title">AGILE</span>
+                                <span class="related-node-subtitle">SC'25 (ours)</span>
+                            </button>
+
+                            <aside class="related-dialog" id="relatedWorksDialog" aria-live="polite">
+                                <h3 id="relatedDialogTitle">AGILE</h3>
+                                <p class="related-dialog-subtitle" id="relatedDialogSubtitle">SC'25 · Ours</p>
+                                <div class="related-dialog-section">
+                                    <span class="related-dialog-heading">Features</span>
+                                    <ul id="relatedDialogFeatures"></ul>
+                                </div>
+                                <div class="related-dialog-section" id="relatedDialogShortcomingsSection">
+                                    <span class="related-dialog-heading related-dialog-heading-warn">Shortcomings</span>
+                                    <ul id="relatedDialogShortcomings"></ul>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <script>
+            (function () {
+                const scrollytelling = document.getElementById("scrollytelling");
+                const panels = Array.from(document.querySelectorAll("[data-panel]"));
+                const dots = Array.from(document.querySelectorAll(".stage-dot"));
+                const progressBar = document.getElementById("progressBar");
+                const connectionToggle = document.getElementById("connectionToggle");
+                const connectionFlyout = document.getElementById("connectionFlyout");
+                const connectionBackdrop = document.getElementById("connectionBackdrop");
+                const connectionClose = document.getElementById("connectionClose");
+                const hostInput = document.getElementById("server-host");
+                const portInput = document.getElementById("server-port");
+                const targetUrl = document.getElementById("target-url");
+                const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                const panelCount = panels.length;
+                const snapDelayMs = 140;
+                const snapThresholdPx = 6;
+                const storageKeys = {
+                    host: "websocket-demo-host",
+                    port: "websocket-demo-port"
+                };
+
+                scrollytelling.style.setProperty("--panel-count", String(panelCount));
+
+                let ticking = false;
+                let snapTimer = null;
+                let activeIndex = 0;
+                let isAutoSnapping = false;
+
+                function setConnectionPanelOpen(isOpen) {
+                    connectionFlyout.classList.toggle("is-open", isOpen);
+                    connectionBackdrop.classList.toggle("is-open", isOpen);
+                    connectionFlyout.setAttribute("aria-hidden", isOpen ? "false" : "true");
+                    connectionToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+                    if (isOpen) {
+                        hostInput.focus();
+                    }
+                }
+
+                function clamp(value, min, max) {
+                    return Math.min(Math.max(value, min), max);
+                }
+
+                function getWebSocketUrl() {
+                    const host = hostInput.value.trim() || "127.0.0.1";
+                    const port = portInput.value.trim() || "9002";
+                    return "ws://" + host + ":" + port;
+                }
+
+                function refreshTargetUrl() {
+                    localStorage.setItem(storageKeys.host, hostInput.value.trim());
+                    localStorage.setItem(storageKeys.port, portInput.value.trim());
+                    targetUrl.textContent = getWebSocketUrl();
+                }
+
+                function loadSavedTarget() {
+                    const savedHost = localStorage.getItem(storageKeys.host);
+                    const savedPort = localStorage.getItem(storageKeys.port);
+
+                    if (savedHost) {
+                        hostInput.value = savedHost;
+                    }
+
+                    if (savedPort) {
+                        portInput.value = savedPort;
+                    }
+                }
+
+                function scrollToPanel(index) {
+                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
+                    const targetProgress = panelCount > 1 ? index / (panelCount - 1) : 0;
+                    const targetTop = window.scrollY + scrollytelling.getBoundingClientRect().top + targetProgress * travel;
+                    const clampedIndex = clamp(index, 0, panelCount - 1);
+
+                    activeIndex = clampedIndex;
+                    isAutoSnapping = true;
+
+                    window.scrollTo({
+                        top: targetTop,
+                        behavior: reducedMotion ? "auto" : "smooth"
+                    });
+
+                    window.clearTimeout(snapTimer);
+                    snapTimer = window.setTimeout(function () {
+                        isAutoSnapping = false;
+                        updatePanels();
+                    }, reducedMotion ? 0 : 260);
+                }
+
+                function getTargetTopForPanel(index) {
+                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
+                    const targetProgress = panelCount > 1 ? index / (panelCount - 1) : 0;
+                    return window.scrollY + scrollytelling.getBoundingClientRect().top + targetProgress * travel;
+                }
+
+                function isStageActive() {
+                    const rect = scrollytelling.getBoundingClientRect();
+                    return rect.top <= 0 && rect.bottom >= window.innerHeight;
+                }
+
+                function snapToNearestPanel() {
+                    if (isAutoSnapping || !isStageActive()) {
+                        return;
+                    }
+
+                    const targetTop = getTargetTopForPanel(activeIndex);
+                    if (Math.abs(window.scrollY - targetTop) <= snapThresholdPx) {
+                        return;
+                    }
+
+                    scrollToPanel(activeIndex);
+                }
+
+                function updatePanels() {
+                    const rect = scrollytelling.getBoundingClientRect();
+                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
+                    const progress = clamp((-rect.top) / travel, 0, 1);
+                    const scaled = progress * Math.max(panelCount - 1, 1);
+                    activeIndex = Math.round(scaled);
+
+                    progressBar.style.transform = "scaleX(" + progress.toFixed(4) + ")";
+
+                    panels.forEach(function (panel, index) {
+                        const delta = scaled - index;
+                        const distance = Math.abs(delta);
+                        const opacity = reducedMotion ? (index === activeIndex ? 1 : 0) : clamp(1 - distance * 0.9, 0, 1);
+                        const shift = reducedMotion ? 0 : delta * -70;
+                        const scale = reducedMotion ? 1 : 1 - Math.min(distance, 1) * 0.09;
+                        const blur = reducedMotion ? 0 : Math.min(distance, 1) * 14;
+                        const tilt = reducedMotion ? 0 : delta * -2.4;
+                        const artShift = reducedMotion ? 0 : delta * -28;
+
+                        panel.style.setProperty("--panel-opacity", opacity.toFixed(4));
+                        panel.style.setProperty("--panel-shift", shift.toFixed(2) + "px");
+                        panel.style.setProperty("--panel-scale", scale.toFixed(4));
+                        panel.style.setProperty("--panel-blur", blur.toFixed(2) + "px");
+                        panel.style.setProperty("--panel-tilt", tilt.toFixed(2) + "deg");
+                        panel.style.setProperty("--art-shift", artShift.toFixed(2) + "px");
+                        panel.style.zIndex = String(panelCount - Math.round(distance * 10));
+                        panel.classList.toggle("is-active", index === activeIndex);
+                    });
+
+                    dots.forEach(function (dot, index) {
+                        dot.classList.toggle("is-active", index === activeIndex);
+                        dot.setAttribute("aria-current", index === activeIndex ? "true" : "false");
+                    });
+
+                    ticking = false;
+                }
+
+                function requestUpdate() {
+                    if (!ticking) {
+                        window.requestAnimationFrame(updatePanels);
+                        ticking = true;
+                    }
+
+                    if (!isAutoSnapping && isStageActive()) {
+                        window.clearTimeout(snapTimer);
+                        snapTimer = window.setTimeout(snapToNearestPanel, snapDelayMs);
+                    } else if (!isStageActive()) {
+                        window.clearTimeout(snapTimer);
+                    }
+                }
+
+                window.addEventListener("scroll", requestUpdate, { passive: true });
+                window.addEventListener("resize", requestUpdate);
+
+                dots.forEach(function (dot, index) {
+                    dot.addEventListener("click", function () {
+                        scrollToPanel(index);
+                    });
+                });
+
+                connectionToggle.addEventListener("click", function () {
+                    setConnectionPanelOpen(!connectionFlyout.classList.contains("is-open"));
+                });
+
+                connectionClose.addEventListener("click", function () {
+                    setConnectionPanelOpen(false);
+                    connectionToggle.focus();
+                });
+
+                connectionBackdrop.addEventListener("click", function () {
+                    setConnectionPanelOpen(false);
+                });
+
+                window.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape" && connectionFlyout.classList.contains("is-open")) {
+                        setConnectionPanelOpen(false);
+                        connectionToggle.focus();
+                    }
+                });
+
+                function runPaperTitleAnimation() {
+                    var paperTitle = document.getElementById("paperTitle");
+                    var paperTitleLogo = document.getElementById("paperTitleLogo");
+                    var blinkTimers = [];
+                    if (!paperTitle) {
+                        return;
+                    }
+
+                    var slotOrder = ["A", "G", "I", "L", "E"];
+                    var letterColors = {
+                        A: "#7bf2c9",
+                        G: "#65c9ff",
+                        I: "#ffd280",
+                        L: "#ff9b8e",
+                        E: "#b8a6ff"
+                    };
+
+                    function revealPaperLogo() {
+                        if (!paperTitleLogo) {
+                            return;
+                        }
+
+                        window.setTimeout(function () {
+                            paperTitleLogo.classList.add("is-visible");
+                        }, reducedMotion ? 0 : 180);
+                    }
+
+                    function stopIdleBlinking() {
+                        blinkTimers.forEach(function (timerId) {
+                            window.clearTimeout(timerId);
+                        });
+                        blinkTimers = [];
+
+                        Array.from(paperTitle.querySelectorAll(".paper-word-initial.is-blinking, .paper-acronym-letter.is-blinking")).forEach(function (node) {
+                            node.classList.remove("is-blinking");
+                        });
+                    }
+
+                    function scheduleIdleBlinking() {
+                        stopIdleBlinking();
+
+                        var blinkTargets = slotOrder.reduce(function (targets, key) {
+                            var source = sources[key];
+                            var slot = paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
+
+                            if (source) {
+                                targets.push(source);
+                            }
+
+                            if (slot) {
+                                targets.push(slot);
+                            }
+
+                            return targets;
+                        }, []);
+
+                        if (!blinkTargets.length) {
+                            return;
+                        }
+
+                        function queueNextBlink() {
+                            var nextDelay = 900 + Math.random() * 1800;
+                            var timerId = window.setTimeout(function () {
+                                var target = blinkTargets[Math.floor(Math.random() * blinkTargets.length)];
+
+                                target.classList.remove("is-blinking");
+                                void target.offsetWidth;
+                                target.classList.add("is-blinking");
+
+                                var cleanupId = window.setTimeout(function () {
+                                    target.classList.remove("is-blinking");
+                                }, 620);
+                                blinkTimers.push(cleanupId);
+                                queueNextBlink();
+                            }, nextDelay);
+
+                            blinkTimers.push(timerId);
+                        }
+
+                        queueNextBlink();
+                    }
+
+                    if (reducedMotion) {
+                        slotOrder.forEach(function (key) {
+                            var reducedSource = paperTitle.querySelector('.paper-word[data-key="' + key + '"] .paper-word-initial');
+                            var reducedSlot = paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
+                            var reducedColor = letterColors[key] || "#65c9ff";
+
+                            if (reducedSource) {
+                                reducedSource.style.setProperty("--paper-accent", reducedColor);
+                                reducedSource.classList.add("is-highlighted");
+                            }
+
+                            if (reducedSlot) {
+                                reducedSlot.style.setProperty("--paper-accent", reducedColor);
+                                reducedSlot.classList.add("is-visible");
+                            }
+                        });
+
+                        paperTitle.classList.add("is-animated");
+                        revealPaperLogo();
+                        return;
+                    }
+
+                    var highlightDelay = 180;
+                    var holdBeforeFlight = 720;
+                    var launchOffsets = [0, 170, 90, 260, 140];
+                    var durations = [1380, 1820, 1540, 2060, 1680];
+                    var sources = {};
+
+                    Array.from(paperTitle.querySelectorAll(".paper-word[data-key]")).forEach(function (word) {
+                        var key = word.getAttribute("data-key");
+                        var initial = word.querySelector(".paper-word-initial");
+                        if (key && initial) {
+                            sources[key] = initial;
+                        }
+                    });
+
+                    var slots = slotOrder.map(function (key) {
+                        return paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
+                    });
+
+                    if (slotOrder.some(function (key) { return !sources[key]; }) || slots.some(function (slot) { return !slot; })) {
+                        paperTitle.classList.add("is-animated");
+                        revealPaperLogo();
+                        return;
+                    }
+
+                    paperTitle.classList.add("is-animating");
+
+                    var completed = 0;
+
+                    function finishAnimation() {
+                        paperTitle.classList.remove("is-animating");
+                        paperTitle.classList.add("is-animated");
+                        revealPaperLogo();
+                        scheduleIdleBlinking();
+                    }
+
+                    slotOrder.forEach(function (key, index) {
+                        var source = sources[key];
+                        var slot = slots[index];
+                        var accent = letterColors[key] || "#65c9ff";
+                        var launchTime = highlightDelay * index + holdBeforeFlight + launchOffsets[index];
+
+                        source.style.setProperty("--paper-accent", accent);
+                        slot.style.setProperty("--paper-accent", accent);
+
+                        window.setTimeout(function () {
+                            source.classList.add("is-highlighted");
+                        }, highlightDelay * index);
+
+                        window.setTimeout(function () {
+                            var sourceRect = source.getBoundingClientRect();
+                            var slotRect = slot.getBoundingClientRect();
+                            var computed = window.getComputedStyle(source);
+                            var flyer = document.createElement("span");
+
+                            source.classList.add("is-source-active");
+
+                            flyer.className = "paper-fly-letter";
+                            flyer.textContent = key;
+                            flyer.style.setProperty("--paper-accent", accent);
+                            flyer.style.left = sourceRect.left + "px";
+                            flyer.style.top = sourceRect.top + "px";
+                            flyer.style.fontFamily = computed.fontFamily;
+                            flyer.style.fontSize = computed.fontSize;
+                            flyer.style.fontWeight = computed.fontWeight;
+                            flyer.style.lineHeight = computed.lineHeight;
+                            flyer.style.letterSpacing = computed.letterSpacing;
+                            document.body.appendChild(flyer);
+
+                            requestAnimationFrame(function () {
+                                flyer.style.transform = "translate(" + (slotRect.left - sourceRect.left) + "px, " + (slotRect.top - sourceRect.top) + "px) scale(1.08)";
+                                flyer.style.opacity = "1";
+                                flyer.style.transition = "transform " + durations[index] + "ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 220ms ease";
+                            });
+
+                            window.setTimeout(function () {
+                                slot.classList.add("is-visible");
+                                source.classList.remove("is-source-active");
+                                flyer.remove();
+                                completed += 1;
+                                if (completed === slotOrder.length) {
+                                    finishAnimation();
+                                }
+                            }, durations[index] + 60);
+                        }, launchTime);
+                    });
+                }
+
+                function initRelatedWorksDialog() {
+                    var nodes = Array.from(document.querySelectorAll(".related-node"));
+                    var map = document.getElementById("relatedWorksMap");
+                    var dialog = document.getElementById("relatedWorksDialog");
+                    var title = document.getElementById("relatedDialogTitle");
+                    var subtitle = document.getElementById("relatedDialogSubtitle");
+                    var features = document.getElementById("relatedDialogFeatures");
+                    var shortcomings = document.getElementById("relatedDialogShortcomings");
+                    var shortcomingsSection = document.getElementById("relatedDialogShortcomingsSection");
+                    var defaultNode = document.querySelector(".related-node.is-default") || nodes[0];
+                    var activeNode = null;
+
+                    if (!map || !dialog || !title || !subtitle || !features || !shortcomings || !shortcomingsSection || !nodes.length) {
+                        return;
+                    }
+
+                    function fillList(target, value) {
+                        target.textContent = "";
+                        var items = value.split("|").filter(Boolean);
+
+                        items.forEach(function (item) {
+                            var listItem = document.createElement("li");
+                            listItem.textContent = item;
+                            target.appendChild(listItem);
+                        });
+
+                        return items.length > 0;
+                    }
+
+                    function setDialogVisible(isVisible) {
+                        dialog.classList.toggle("is-visible", isVisible);
+                    }
+
+                    function clearActiveNode() {
+                        activeNode = null;
+                        setDialogVisible(false);
+                        nodes.forEach(function (item) {
+                            item.classList.remove("is-active");
+                        });
+                    }
+
+                    function positionDialog(node) {
+                        if (window.innerWidth <= 640) {
+                            dialog.style.removeProperty("left");
+                            dialog.style.removeProperty("top");
+                            dialog.style.removeProperty("max-width");
+                            return;
+                        }
+
+                        var mapRect = map.getBoundingClientRect();
+                        var nodeRect = node.getBoundingClientRect();
+                        var dialogRect = dialog.getBoundingClientRect();
+                        var horizontalGap = 18;
+                        var verticalPadding = 18;
+                        var minLeft = 18;
+                        var maxLeft = Math.max(minLeft, mapRect.width - dialogRect.width - 18);
+                        var preferredLeft = nodeRect.right - mapRect.left + horizontalGap;
+
+                        if (preferredLeft > maxLeft) {
+                            preferredLeft = nodeRect.left - mapRect.left - dialogRect.width - horizontalGap;
+                        }
+
+                        var top = nodeRect.top - mapRect.top + (nodeRect.height - dialogRect.height) / 2;
+                        var clampedTop = Math.min(Math.max(top, verticalPadding), Math.max(verticalPadding, mapRect.height - dialogRect.height - verticalPadding));
+                        var clampedLeft = Math.min(Math.max(preferredLeft, minLeft), maxLeft);
+
+                        dialog.style.left = clampedLeft + "px";
+                        dialog.style.top = clampedTop + "px";
+                        dialog.style.maxWidth = Math.min(320, Math.max(240, mapRect.width * 0.34)) + "px";
+                    }
+
+                    function activate(node) {
+                        activeNode = node;
+                        setDialogVisible(true);
+
+                        nodes.forEach(function (item) {
+                            item.classList.toggle("is-active", item === node);
+                        });
+
+                        title.textContent = node.dataset.title || "";
+                        subtitle.textContent = node.dataset.subtitle || "";
+                        fillList(features, node.dataset.features || "");
+                        shortcomingsSection.hidden = !fillList(shortcomings, node.dataset.shortcomings || "");
+                        positionDialog(node);
+                    }
+
+                    nodes.forEach(function (node) {
+                        node.addEventListener("mouseenter", function () {
+                            activate(node);
+                        });
+
+                        node.addEventListener("mouseleave", function (event) {
+                            var nextTarget = event.relatedTarget;
+
+                            if (nextTarget && nextTarget.closest && nextTarget.closest(".related-node")) {
+                                return;
+                            }
+
+                            if (activeNode === node) {
+                                clearActiveNode();
+                            }
+                        });
+
+                        node.addEventListener("focus", function () {
+                            activate(node);
+                        });
+
+                        node.addEventListener("blur", function (event) {
+                            var nextTarget = event.relatedTarget;
+
+                            if (nextTarget && nextTarget.closest && nextTarget.closest(".related-node")) {
+                                return;
+                            }
+
+                            if (activeNode === node) {
+                                clearActiveNode();
+                            }
+                        });
+
+                        node.addEventListener("click", function () {
+                            activate(node);
+                        });
+                    });
+
+                    window.addEventListener("resize", function () {
+                        if (activeNode) {
+                            positionDialog(activeNode);
+                        }
+                    });
+
+                    if (defaultNode) {
+                        title.textContent = defaultNode.dataset.title || "";
+                        subtitle.textContent = defaultNode.dataset.subtitle || "";
+                        fillList(features, defaultNode.dataset.features || "");
+                        shortcomingsSection.hidden = !fillList(shortcomings, defaultNode.dataset.shortcomings || "");
+                        activeNode = defaultNode;
+                        positionDialog(defaultNode);
+                    }
+                    setDialogVisible(false);
+                }
+
+                loadSavedTarget();
+                refreshTargetUrl();
+                hostInput.addEventListener("input", refreshTargetUrl);
+                portInput.addEventListener("input", refreshTargetUrl);
+                updatePanels();
+                initRelatedWorksDialog();
+                window.requestAnimationFrame(function () {
+                    window.requestAnimationFrame(runPaperTitleAnimation);
+                });
+            })();
+        </script>
+        <script src="vendor/jquery/jquery-3.7.1.min.js"></script>
+        <script src="vendor/chartjs/chart.umd.min.js"></script>
+        <script src="js/graph-breakdown-chart.js"></script>
+        <script src="js/ctc-chart.js"></script>
+        <script src="js/dlrm-charts.js"></script>
+        <script src="js/app.js"></script>
+        <script>
+            (function () {
+                var dlrmConfigButton = document.getElementById("dlrm-config-btn");
+
+                if (window.GraphBreakdownChart) {
+                    GraphBreakdownChart.init("graph-breakdown-chart");
+                    GraphBreakdownChart.load("data/sweep_results.json");
+                }
+
+                if (window.CtcChart) {
+                    CtcChart.init("ctc-chart");
+                    CtcChart.load("data/sweep_ctc_data.json");
+                }
+
+                if (dlrmConfigButton) {
+                    dlrmConfigButton.click();
+                }
+            })();
+        </script>
+    </body>
 </html>
