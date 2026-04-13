@@ -34,6 +34,8 @@ series = {Supercomputing '25}
 
 ## 🎉 AGILE examples are updated now! See [./demo/examples](./demo/examples) and [./tutorial](./tutorial) 👀
 
+Click [here](http://agile-demo.zhuopingyang.com/) to see the demo webpage.
+
 
 ## Installation
 
