@@ -37,14 +37,35 @@ series = {Supercomputing '25}
 
 ## Installation
 
-AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
-> Note: The requirement on this modified GDRCopy drvier will be removed soon.
-
-To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./tutorial/00_Select_Target_SSD) for more details.
-
+<!-- AGILE requires a modified version of [GDRCopy](https://github.com/NVMe-SSD/GDRCopy), which is included in this repo ([./driver/gdrcopy](./driver/gdrcopy)). Please follow the instructions to build and install it.
+> Note: The requirement on this modified GDRCopy drvier will be removed soon. -->
+### 01 Change the BAR1 memory size if necessary
 AGILE relies on the GPUs' BAR1 Memory as the source and destination in GPU-SSD peer-to-peer communication. If the default BAR1 memory size is too small (typically 128MB), please refer [NVIDIA Display Mode Selector Tool](https://developer.nvidia.com/displaymodeselector) (1.67.0) to increase the BAR1 memory size.
 
+### 02 Disable IOMMU
 Disable IOMMU in `/etc/default/grub` by adding `intel_iommu=off` flag to `GRUB_CMDLINE_LINUX_DEFAULT`. Then, update grub (`sudo update-grub`) and reboot (`sudo reboot`) the machine.
+
+### 03 Compiling Nvidia Driver Kernel Symbols
+```
+$ cd /usr/src/nvidia-xxx/
+$ sudo make
+```
+### 04 Compiling AGILE NVMe and GPU driver
+```
+$ cd ${AGILE_PATH}/driver/agile_gpu-linux-6.8.0/kernel
+$ make
+$ sudo insmod agile_gpu_krnl.ko
+$ cd ${AGILE_PATH}/driver/agile_nvme-linux-6.8.0/kernel
+$ make
+$ sudo insmod agile_nvme_driver.ko
+```
+> Note: We also provide a modified `libnvm` that BaM relies on for Linux 6.8.0 [./driver/bam_nvme_driver-linux-6.8.0/](./driver/bam_nvme_driver-linux-6.8.0/).
+
+### 05 Unbind default NVMe driver and switch to AGILE NVMe driver
+To use AGILE, you must ***backup all data*** and switch to the AGILE NVMe driver for the target NVMe SSDs. Check [switch to AGILE driver](./tutorial/00_Select_Target_SSD) for more details.
+
+
+
 
 ## Experiments
 AGILE has been evaluated on a Dell R750 server running Ubuntu 20.04, equipped with an Nvidia RTX 5000 Ada GPU, a Dell Ent NVMe AGN MU AIC 1.6TB SSD, and two Samsung 990 PRO 1TB SSDs. The Nvidia Driver version is 550.54, and the CUDA version is 12.8.
