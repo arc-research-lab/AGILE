@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>AGILE Demo</title>
@@ -15,6 +18,7 @@
 
     <body>
         <header class="topbar">
+            <div class="topbar-left">
             <button
                 class="brand brand-button"
                 id="connectionToggle"
@@ -26,6 +30,13 @@
                 <span class="brand-mark disconnected" id="brand-status-dot"></span>
                 <span>AGILE Demo</span>
             </button>
+            <a class="github-link" href="https://github.com/arc-research-lab/AGILE" target="_blank" rel="noopener" aria-label="View on GitHub" title="View on GitHub">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            </a>
+            <a class="acm-link" href="https://dl.acm.org/doi/10.1145/3712285.3759778" target="_blank" rel="noopener" aria-label="View ACM Paper" title="View ACM Paper">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0H4zm0 1h5v3a1 1 0 0 0 1 1h3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm6 .5L12.5 4H11a.5.5 0 0 1-.5-.5V1.5zM5 7h6v1H5V7zm0 2h6v1H5V9zm0 2h6v1H5v-1z"/></svg>
+            </a>
+            </div>
             <div class="progress-shell" aria-hidden="true">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
@@ -120,11 +131,762 @@
                                     </span>
                                 </h2>
                             </div>
+                            <div class="intro-hero-art">
+                                <img class="paper-title-logo" id="paperTitleLogo" src="images/AGILE-logo1.png" alt="AGILE logo" />
+                            </div>
                             <div class="intro-summary-row">
                                 <p class="lede">
                                     AGILE is the first system to enable asynchronous, GPU-initiated communication with NVMe SSDs. AGILE overlaps data transfers with computation to maximize parallelism and utilization. It incorporates a lightweight GPU-resident runtime, a deadlock-free asynchronous execution model, and a flexible HBM-based software cache with customizable policies. Together, these features minimize latency and overhead, delivering substantial performance gains for data-intensive workloads.
                                 </p>
-                                <img class="paper-title-logo" id="paperTitleLogo" src="images/AGILE-logo1.png" alt="AGILE logo" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="context-section memory-wall-section" id="memoryWallSection" aria-labelledby="memoryWallTitle">
+                <div class="memory-wall-header">
+                    <span class="eyebrow">The Memory Wall Problem</span>
+                    <h2 id="memoryWallTitle">AI model growth is outpacing on-package GPU memory</h2>
+                </div>
+
+                <div class="context-shell memory-wall-body">
+                    <div class="context-copy memory-wall-copy">
+                        <p class="context-lede">
+                            Modern recommendation and foundation models scale much faster than accelerator memory capacity. The result is a persistent memory wall: the model footprint keeps growing, but each GPU can only hold a small working set locally.
+                        </p>
+                        <p>
+                            That mismatch pushes large deployments toward aggressive model sharding, host staging, and storage offload. Once memory becomes the bottleneck, adding more GPUs does not automatically translate to higher compute utilization.
+                        </p>
+
+                        <!-- <div class="memory-wall-metrics" aria-label="Memory wall summary metrics">
+                            <article class="memory-metric">
+                                <strong>410x</strong>
+                                <span>Transformer size growth in 2 years</span>
+                            </article>
+                            <article class="memory-metric">
+                                <strong>2x</strong>
+                                <span>AI hardware memory growth in 2 years</span>
+                            </article>
+                            <article class="memory-metric">
+                                <strong>Utilization Gap</strong>
+                                <span>More GPUs are provisioned, but memory pressure still stalls efficient execution</span>
+                            </article>
+                        </div> -->
+                    </div>
+
+                    <div class="context-art memory-wall-art">
+                        <div class="memory-wall-chart-frame">
+                            <!-- <div class="memory-wall-chart-copy">
+                            </div> -->
+
+                            <svg class="memory-wall-chart" id="memoryWallChart" viewBox="0 0 950 560" role="img" aria-label="Chart comparing AI model parameter growth and accelerator memory growth over time">
+                                <defs>
+                                    <linearGradient id="modelTrendGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#ffb089" stop-opacity="0.18"></stop>
+                                        <stop offset="100%" stop-color="#ff7f66" stop-opacity="0.9"></stop>
+                                    </linearGradient>
+                                    <linearGradient id="memoryTrendGradient" x1="0%" y1="60%" x2="100%" y2="40%">
+                                        <stop offset="0%" stop-color="#7bf2c9" stop-opacity="0.32"></stop>
+                                        <stop offset="100%" stop-color="#7bf2c9" stop-opacity="0.86"></stop>
+                                    </linearGradient>
+                                </defs>
+
+                                <g class="memory-grid">
+                                    <line x1="92" y1="466" x2="794" y2="466"></line>
+                                    <line x1="92" y1="397" x2="794" y2="397"></line>
+                                    <line x1="92" y1="328" x2="794" y2="328"></line>
+                                    <line x1="92" y1="259" x2="794" y2="259"></line>
+                                    <line x1="92" y1="190" x2="794" y2="190"></line>
+                                    <line x1="92" y1="121" x2="794" y2="121"></line>
+                                </g>
+
+                                <g class="memory-axis">
+                                    <line x1="92" y1="70" x2="92" y2="498"></line>
+                                    <line x1="92" y1="466" x2="794" y2="466"></line>
+                                </g>
+
+                                <g class="memory-axis-labels memory-axis-labels-y">
+                                    <text x="78" y="470">0.01</text>
+                                    <text x="78" y="401">0.1</text>
+                                    <text x="78" y="332">1</text>
+                                    <text x="78" y="263">10</text>
+                                    <text x="78" y="194">100</text>
+                                    <text x="78" y="125">1000</text>
+                                    <text x="78" y="86">10000</text>
+                                </g>
+
+                                <g class="memory-axis-labels memory-axis-labels-x">
+                                    <text x="130" y="514">2016</text>
+                                    <text x="235" y="514">2017</text>
+                                    <text x="340" y="514">2018</text>
+                                    <text x="445" y="514">2019</text>
+                                    <text x="550" y="514">2020</text>
+                                    <text x="655" y="514">2021</text>
+                                    <text x="760" y="514">2022</text>
+                                </g>
+
+                                <text class="memory-axis-title memory-axis-title-y" x="28" y="286" transform="rotate(-90 28 286)">Parameter count (billion)</text>
+                                <text class="memory-axis-title" x="430" y="546">Year</text>
+
+                                <path class="memory-trend memory-trend-model" d="M 330 452 C 420 380, 470 304, 560 220 S 700 128, 760 92"></path>
+                                <path class="memory-trend memory-trend-memory" d="M 140 286 C 310 275, 480 265, 760 240"></path>
+
+                                <g class="memory-series memory-series-cnn">
+                                    <circle class="memory-point memory-point-cnn" cx="118" cy="434" r="7"></circle>
+                                    <circle class="memory-point memory-point-cnn" cx="146" cy="410" r="7"></circle>
+                                    <circle class="memory-point memory-point-cnn" cx="223" cy="434" r="7"></circle>
+                                    <circle class="memory-point memory-point-cnn" cx="242" cy="430" r="7"></circle>
+                                    <text class="memory-label" x="102" y="396">ResNet50</text>
+                                    <text class="memory-label" x="94" y="446">Inception V4</text>
+                                    <text class="memory-label" x="208" y="447">ResNext101</text>
+                                    <text class="memory-label" x="189" y="600">DenseNet</text>
+                                </g>
+
+                                <g class="memory-series memory-series-models">
+                                    <circle class="memory-point memory-point-model" cx="332" cy="425" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="387" cy="406" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="430" cy="378" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="466" cy="343" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="516" cy="285" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="570" cy="248" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="602" cy="214" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="612" cy="178" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="654" cy="161" r="7"></circle>
+                                    <circle class="memory-point memory-point-model" cx="724" cy="192" r="7"></circle>
+                                    <text class="memory-label" x="303" y="414">Transformer</text>
+                                    <text class="memory-label" x="368" y="395">GPT-1</text>
+                                    <text class="memory-label" x="413" y="367">BERT</text>
+                                    <text class="memory-label" x="448" y="332">GPT-2</text>
+                                    <text class="memory-label" x="482" y="274">Megatron LM</text>
+                                    <text class="memory-label" x="536" y="237">Microsoft T-NLG</text>
+                                    <text class="memory-label" x="584" y="203">GPT-3</text>
+                                    <text class="memory-label" x="584" y="167">GShard</text>
+                                    <text class="memory-label" x="595" y="150">Switch Transformer</text>
+                                    <text class="memory-label" x="678" y="181">Megatron-Turing</text>
+                                </g>
+
+                                <g class="memory-series memory-series-memory">
+                                    <circle class="memory-point memory-point-memory" cx="174" cy="357" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="250" cy="344" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="274" cy="344" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="373" cy="344" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="588" cy="333" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="646" cy="312" r="7"></circle>
+                                    <circle class="memory-point memory-point-memory" cx="780" cy="312" r="7"></circle>
+                                    <text class="memory-label memory-label-memory" x="146" y="346">P100 (12GB)</text>
+                                    <text class="memory-label memory-label-memory" x="214" y="370">TPUv2 (16GB)</text>
+                                    <text class="memory-label memory-label-memory" x="242" y="333">V100 (32GB)</text>
+                                    <text class="memory-label memory-label-memory" x="338" y="333">TPUv3 (32GB)</text>
+                                    <text class="memory-label memory-label-memory" x="553" y="322">A100-80 (80GB)</text>
+                                    <text class="memory-label memory-label-memory" x="610" y="301">A100 (40GB)</text>
+                                    <text class="memory-label memory-label-memory" x="748" y="301">H100 (80GB)</text>
+                                </g>
+
+                                <g class="memory-series memory-series-outlier">
+                                    <circle class="memory-point memory-point-outlier" cx="608" cy="86" r="7"></circle>
+                                    <text class="memory-label memory-label-outlier" x="557" y="74">10TB Baidu RecSys</text>
+                                </g>
+
+                                <g class="memory-callouts">
+                                    <text class="memory-callout memory-callout-model" x="138" y="140">Transformer Size:</text>
+                                    <text class="memory-callout memory-callout-model" x="356" y="140">410x / 2 yrs</text>
+                                    <text class="memory-callout memory-callout-memory" x="138" y="180">AI HW Memory:</text>
+                                    <text class="memory-callout memory-callout-memory" x="368" y="180">2x / 2 yrs</text>
+                                </g>
+                            </svg>
+
+                            <div class="memory-wall-legend" aria-hidden="true">
+                                <span><i class="legend-dot legend-dot-model"></i> Transformer Models</span>
+                                <span><i class="legend-dot legend-dot-memory"></i> HW Memory Capacity</span>
+                            </div>
+                            <div class="memory-wall-note">
+                                <span>Note: The data are approximated from Gholami, Amir, et al., “AI and the Memory Wall,” IEEE Micro, vol. 44, no. 3, 2024, pp. 33–39.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="context-section system-story-section" id="systemStorySection" aria-labelledby="systemStoryTitle">
+                <div class="gpu-io-shell">
+                    <div class="gpu-io-header">
+                        <span class="eyebrow">GPU-Centric I/O</span>
+                        <h2 id="systemStoryTitle">Data Path and Control Path Optimizations</h2>
+                        <!-- <p class="gpu-io-subtitle">The difference between these designs is not just where the bytes flow, but who owns the control path that starts each transfer.</p> -->
+                    </div>
+
+                    <div class="gpu-io-grid-panel" id="systemFlowScene">
+                        <div class="gpu-io-grid">
+                        <article class="io-case-card" style="--case-index: 0" aria-label="Case 1: without GPUDirect Storage">
+                            <div class="io-case-header">
+                                <span class="io-case-kicker">Case 1</span>
+                                <h3>Before GPUDirect Storage</h3>
+                            </div>
+
+                            <div class="io-case-stage">
+                                <svg class="io-case-svg" viewBox="0 0 420 260" aria-hidden="true">
+                                    <defs>
+                                        <marker id="io-arrow-control-1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#97a8ff"></circle>
+                                        </marker>
+                                        <marker id="io-arrow-data-1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#7ff4d7"></circle>
+                                        </marker>
+                                        <marker id="io-arrow-bounce-1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#ffad97"></circle>
+                                        </marker>
+                                    </defs>
+
+                                    <path class="io-link-base" d="M 128 51 H 166"></path>
+                                    <path class="io-link-base" d="M 252 51 H 304 V 120"></path>
+                                    <path class="io-link-base" d="M 209 78 V 198 H 170"></path>
+                                    <path class="io-link-base" d="M 82 74 V 198 H 122"></path>
+
+                                    <path class="io-flow-path is-control" style="--path-delay: 0.15s" d="M 170 214 H 209 V 78" marker-end="url(#io-arrow-control-1)"></path>
+                                    <path class="io-flow-path is-control" style="--path-delay: 0.65s" d="M 166 51 H 128" marker-end="url(#io-arrow-control-1)"></path>
+                                    <path class="io-flow-path is-control" style="--path-delay: 1.05s" d="M 209 78 V 198 H 170" marker-end="url(#io-arrow-control-1)"></path>
+
+                                    <path class="io-flow-path is-bounce" style="--path-delay: 1.45s" d="M 304 146 H 128 V 74" marker-end="url(#io-arrow-bounce-1)"></path>
+                                    <path class="io-flow-path is-bounce" style="--path-delay: 1.95s" d="M 82 74 V 198 H 122" marker-end="url(#io-arrow-bounce-1)"></path>
+
+                                    <g class="io-node io-node-dram" style="--node-delay: 0s">
+                                        <rect class="io-node-shell io-node-shell-dram" x="34" y="28" width="92" height="46" rx="14"></rect>
+                                        <rect class="io-node-core io-node-core-dram" x="46" y="39" width="68" height="24" rx="8"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="52" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="68" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="84" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="100" y="44" width="8" height="14" rx="3"></rect>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 44 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 58 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 72 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 86 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 100 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 114 31 V 25"></path>
+                                        <text class="io-node-label" x="80" y="58">DRAM</text>
+                                    </g>
+
+                                    <g class="io-node io-node-cpu" style="--node-delay: 0.2s">
+                                        <rect class="io-node-shell io-node-shell-cpu" x="173" y="15" width="72" height="72" rx="16"></rect>
+                                        <rect class="io-node-core io-node-core-cpu" x="184" y="37" width="50" height="28" rx="7"></rect>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 27 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 39 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 51 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 63 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 75 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 27 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 39 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 51 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 63 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 75 H 251"></path>
+                                        <text class="io-node-label" x="209" y="55">CPU</text>
+                                    </g>
+
+                                    <g class="io-node io-node-ssd" style="--node-delay: 0.65s">
+                                        <rect class="io-node-shell io-node-shell-ssd" x="304" y="120" width="88" height="52" rx="16"></rect>
+                                        <text class="io-node-label" x="348" y="140">NVMe</text>
+                                        <rect class="io-node-ssd-body" x="328" y="148" width="40" height="18" rx="4"></rect>
+                                        <rect class="io-node-ssd-chip" x="348" y="151" width="16" height="12" rx="2"></rect>
+                                        <!-- <text class="io-node-meta" x="348" y="157">cold data</text> -->
+                                    </g>
+                                    </g>
+
+                                    <g class="io-node io-node-gpu" style="--node-delay: 0.85s">
+                                        <rect class="io-node-shell io-node-shell-gpu" x="70" y="198" width="96" height="50" rx="16"></rect>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="98" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="122" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan-core" cx="98" cy="223" r="2.2"></circle>
+                                        <circle class="io-node-fan-core" cx="122" cy="223" r="2.2"></circle>
+                                        <path class="io-node-edge io-node-edge-gpu" d="M 84 249 H 150"></path>
+                                        <text class="io-node-label" x="118" y="214">GPU</text>
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <ol class="io-step-list" aria-label="Without GPUDirect Storage flow">
+                                <li class="io-step-chip is-control">1. GPU-CPU sync, telling the CPU which data to fetch</li>
+                                <li class="io-step-chip is-bounce">2. CPU reads data from NVMe to DRAM</li>
+                                <li class="io-step-chip is-bounce">3. CPU copies data from DRAM to GPU</li>
+                            </ol>
+                            <div class="io-takeaway-row">
+                                <span class="io-step-chip is-takeaway is-bottleneck">CPU and DRAM both stay in the critical path</span>
+                                <button class="io-replay-btn" aria-label="Replay animation" title="Replay">RUN</button>
+                            </div>
+                        </article>
+
+                        <article class="io-case-card" style="--case-index: 1" aria-label="Case 2: with GPUDirect Storage">
+                            <div class="io-case-header">
+                                <span class="io-case-kicker">Case 2</span>
+                                <h3>With GPUDirect Storage</h3>
+                            </div>
+
+                            <div class="io-case-stage">
+                                <svg class="io-case-svg" viewBox="0 0 420 260" aria-hidden="true">
+                                    <defs>
+                                        <marker id="io-arrow-control-2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#97a8ff"></circle>
+                                        </marker>
+                                        <marker id="io-arrow-data-2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#7ff4d7"></circle>
+                                        </marker>
+                                    </defs>
+
+                                    <path class="io-link-base" d="M 128 51 H 166"></path>
+                                    <path class="io-link-base" d="M 252 51 H 304 V 120"></path>
+                                    <path class="io-link-base" d="M 209 78 V 198 H 170"></path>
+
+                                    <path class="io-flow-path is-control" style="--path-delay: 0.15s" d="M 170 214 H 209 V 78" marker-end="url(#io-arrow-control-2)"></path>
+                                    <path class="io-flow-path is-control" style="--path-delay: 0.75s" d="M 252 51 H 304 V 146" marker-end="url(#io-arrow-control-2)"></path>
+
+                                    <path class="io-flow-path is-data" style="--path-delay: 1.35s" d="M 304 146 H 200 V 214 H 170" marker-end="url(#io-arrow-data-2)"></path>
+
+                                    <g class="io-node io-node-dram is-muted" style="--node-delay: 0s">
+                                        <rect class="io-node-shell io-node-shell-dram" x="34" y="28" width="92" height="46" rx="14"></rect>
+                                        <rect class="io-node-core io-node-core-dram" x="46" y="39" width="68" height="24" rx="8"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="52" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="68" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="84" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="100" y="44" width="8" height="14" rx="3"></rect>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 44 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 58 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 72 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 86 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 100 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 114 31 V 25"></path>
+                                        <text class="io-node-label" x="80" y="58">DRAM</text>
+                                    </g>
+
+                                    <g class="io-node io-node-cpu" style="--node-delay: 0.2s">
+                                        <rect class="io-node-shell io-node-shell-cpu" x="173" y="15" width="72" height="72" rx="16"></rect>
+                                        <rect class="io-node-core io-node-core-cpu" x="184" y="37" width="50" height="28" rx="7"></rect>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 27 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 39 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 51 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 63 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 75 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 27 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 39 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 51 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 63 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 75 H 251"></path>
+                                        <text class="io-node-label" x="209" y="55">CPU</text>
+                                    </g>
+
+                                    <g class="io-node io-node-ssd" style="--node-delay: 0.65s">
+                                        <rect class="io-node-shell io-node-shell-ssd" x="304" y="120" width="88" height="52" rx="16"></rect>
+                                        <text class="io-node-label" x="348" y="140">NVMe</text>
+                                        <rect class="io-node-ssd-body" x="328" y="148" width="40" height="18" rx="4"></rect>
+                                        <rect class="io-node-ssd-chip" x="348" y="151" width="16" height="12" rx="2"></rect>
+                                        <!-- <text class="io-node-meta" x="348" y="157">direct DMA</text> -->
+                                    </g>
+                                    </g>
+
+                                    <g class="io-node io-node-gpu" style="--node-delay: 0.85s">
+                                        <rect class="io-node-shell io-node-shell-gpu" x="70" y="198" width="96" height="50" rx="16"></rect>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="98" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="122" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan-core" cx="98" cy="223" r="2.2"></circle>
+                                        <circle class="io-node-fan-core" cx="122" cy="223" r="2.2"></circle>
+                                        <path class="io-node-edge io-node-edge-gpu" d="M 84 249 H 150"></path>
+                                        <text class="io-node-label" x="118" y="214">GPU</text>
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <ol class="io-step-list" aria-label="With GPUDirect Storage flow">
+                                <li class="io-step-chip is-control">1. GPU-CPU sync, telling the CPU which data to fetch</li>
+                                <li class="io-step-chip is-control">2. CPU issues NVMe read command</li>
+                                <li class="io-step-chip is-data">3. NVMe DMA data directly to GPU</li>
+                            </ol>
+                            <div class="io-takeaway-row">
+                                <span class="io-step-chip is-takeaway is-mid">DRAM bypassed, but CPU still controls I/O</span>
+                                <button class="io-replay-btn" aria-label="Replay animation" title="Replay">RUN</button>
+                            </div>
+                        </article>
+
+                        <article class="io-case-card" style="--case-index: 2" aria-label="Case 3: GPU-centric storage">
+                            <div class="io-case-header">
+                                <span class="io-case-kicker">Case 3</span>
+                                <h3>GPU-Centric Storage</h3>
+                            </div>
+
+                            <div class="io-case-stage">
+                                <svg class="io-case-svg" viewBox="0 0 420 260" aria-hidden="true">
+                                    <defs>
+                                        <marker id="io-arrow-control-3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#ffd57c"></circle>
+                                        </marker>
+                                        <marker id="io-arrow-data-3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                            <circle cx="4" cy="4" r="2.4" fill="#7ff4d7"></circle>
+                                        </marker>
+                                    </defs>
+
+                                    <path class="io-link-base" d="M 128 51 H 166"></path>
+                                    <path class="io-link-base" d="M 252 51 H 304 V 120"></path>
+                                    <path class="io-link-base" d="M 170 214 H 304"></path>
+
+                                    <path class="io-flow-path is-control is-gpu-control" style="--path-delay: 0.25s" d="M 170 214 H 200 V 146 H 304" marker-end="url(#io-arrow-control-3)"></path>
+                                    <path class="io-flow-path is-data" style="--path-delay: 0.95s" d="M 304 160 H 188 V 214 H 170" marker-end="url(#io-arrow-data-3)"></path>
+
+                                    <g class="io-node io-node-dram is-muted" style="--node-delay: 0s">
+                                        <rect class="io-node-shell io-node-shell-dram" x="34" y="28" width="92" height="46" rx="14"></rect>
+                                        <rect class="io-node-core io-node-core-dram" x="46" y="39" width="68" height="24" rx="8"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="52" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="68" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="84" y="44" width="12" height="14" rx="3"></rect>
+                                        <rect class="io-node-detail io-node-detail-dram" x="100" y="44" width="8" height="14" rx="3"></rect>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 44 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 58 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 72 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 86 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 100 31 V 25"></path>
+                                        <path class="io-node-pin io-node-pin-dram" d="M 114 31 V 25"></path>
+                                        <text class="io-node-label" x="80" y="58">DRAM</text>
+                                    </g>
+
+                                    <g class="io-node io-node-cpu is-muted" style="--node-delay: 0.15s">
+                                        <rect class="io-node-shell io-node-shell-cpu" x="173" y="15" width="72" height="72" rx="16"></rect>
+                                        <rect class="io-node-core io-node-core-cpu" x="184" y="37" width="50" height="28" rx="7"></rect>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 15 V 9"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 185 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 197 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 209 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 221 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 233 87 V 93"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 27 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 39 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 51 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 63 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 173 75 H 167"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 27 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 39 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 51 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 63 H 251"></path>
+                                        <path class="io-node-pin io-node-pin-cpu" d="M 245 75 H 251"></path>
+                                        <text class="io-node-label" x="209" y="55">CPU</text>
+                                    </g>
+
+                                    <g class="io-node io-node-ssd" style="--node-delay: 0.65s">
+                                        <rect class="io-node-shell io-node-shell-ssd" x="304" y="120" width="88" height="52" rx="16"></rect>
+                                        <text class="io-node-label" x="348" y="140">NVMe</text>
+                                        <rect class="io-node-ssd-body" x="328" y="148" width="40" height="18" rx="4"></rect>
+                                        <rect class="io-node-ssd-chip" x="348" y="151" width="16" height="12" rx="2"></rect>
+                                        <!-- <text class="io-node-meta" x="348" y="157">GPU-served</text> -->
+                                    </g>
+                                    </g>
+
+                                    <g class="io-node io-node-gpu is-primary" style="--node-delay: 0.85s">
+                                        <rect class="io-node-shell io-node-shell-gpu" x="70" y="198" width="96" height="50" rx="16"></rect>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="98" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan io-node-fan-gpu" cx="122" cy="223" r="9"></circle>
+                                        <circle class="io-node-fan-core" cx="98" cy="223" r="2.2"></circle>
+                                        <circle class="io-node-fan-core" cx="122" cy="223" r="2.2"></circle>
+                                        <path class="io-node-edge io-node-edge-gpu" d="M 84 249 H 150"></path>
+                                        <text class="io-node-label" x="118" y="214">GPU</text>
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <ol class="io-step-list" aria-label="GPU-centric storage flow">
+                                <li class="io-step-chip is-gpu-control">1. GPU issues NVMe read command</li>
+                                <li class="io-step-chip is-data">2. NVMe DMA data directly to GPU</li>
+                                <li class="io-step-chip is-gpu-control">3. No CPU or DRAM involvement</li>
+                            </ol>
+                            <div class="io-takeaway-row">
+                                <span class="io-step-chip is-takeaway is-win">GPU owns both control and data path</span>
+                                <button class="io-replay-btn" aria-label="Replay animation" title="Replay">RUN</button>
+                            </div>
+                        </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="context-section sync-model-section" id="syncModelSection" aria-labelledby="syncModelTitle">
+                <div class="sync-model-header">
+                    <span class="eyebrow">Programming Model -- Synchronous I/O</span>
+                    <h2 id="syncModelTitle">Synchronous I/O</h2>
+                    <h2 class="sync-model-subtitle">Synchronous I/O keeps the request path simple, but it stalls compute on every batch</h2>
+                </div>
+
+                <div class="context-shell sync-model-body">
+                    <div class="context-copy sync-model-copy" aria-label="Synchronous I O pseudo-code">
+                        <div class="sync-code-frame">
+                            <div class="sync-code-toolbar" aria-hidden="true">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <div class="sync-code-block">
+                                <div class="sync-code-line" data-line="0">
+                                    <span class="sync-code-number">1</span>
+                                    <span class="sync-code-text"><span class="sync-code-keyword">for</span> batch <span class="sync-code-keyword">in</span> loader:</span>
+                                </div>
+                                <div class="sync-code-line" data-line="1">
+                                    <span class="sync-code-number">2</span>
+                                    <span class="sync-code-text sync-code-indent-1">buf = <span class="sync-code-call">agile.read_sync(batch)</span></span>
+                                    <span class="sync-code-chip sync-code-chip-block">blocking I/O</span>
+                                </div>
+                                <div class="sync-code-line" data-line="2">
+                                    <span class="sync-code-number">3</span>
+                                    <span class="sync-code-text sync-code-indent-1 sync-code-comment"># thread needs to wait for data transfer</span>
+                                </div>
+                                <div class="sync-code-line" data-line="3">
+                                    <span class="sync-code-number">4</span>
+                                    <span class="sync-code-text sync-code-indent-1">logits = <span class="sync-code-call sync-code-call-compute">run_kernel(buf)</span></span>
+                                </div>
+                                <div class="sync-code-line" data-line="4">
+                                    <span class="sync-code-number">5</span>
+                                    <span class="sync-code-text sync-code-indent-1">commit(logits)</span>
+                                </div>
+                            </div>
+                            <div class="sync-code-footer">
+                                <span class="sync-code-status">Pipeline state</span>
+                                <span class="sync-code-wait" id="syncCodeWait">blocked on read</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="context-art sync-model-art">
+                        <div class="sync-timeline-frame" aria-label="Timeline showing synchronous transfers and compute without overlap">
+                            <div class="sync-timeline-header">
+                                <span class="sync-timeline-kicker">Sync I/O Timeline</span>
+                                <div class="sync-timeline-legend" aria-hidden="true">
+                                    <span><i class="sync-legend-swatch sync-legend-transfer"></i> Data transfer</span>
+                                    <span><i class="sync-legend-swatch sync-legend-compute"></i> Compute</span>
+                                </div>
+                            </div>
+
+                            <div class="sync-axis" aria-hidden="true">
+                                <span>t0</span>
+                                <span>t1</span>
+                                <span>t2</span>
+                                <span>t3</span>
+                                <span>t4</span>
+                            </div>
+
+                            <div class="sync-timeline-grid">
+                                <div class="sync-batch-row" data-batch="0">
+                                    <div class="sync-batch-label">Batch 0</div>
+                                    <div class="sync-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:2%;--span:0%"></div>
+                                        <div class="sync-block sync-block-transfer" style="--offset:2%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">read</span>
+                                        </div>
+                                        <div class="sync-block sync-block-compute" style="--offset:18%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sync-batch-row" data-batch="1">
+                                    <div class="sync-batch-label">Batch 1</div>
+                                    <div class="sync-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:2%;--span:32%"></div>
+                                        <div class="sync-block sync-block-transfer" style="--offset:34%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">read</span>
+                                        </div>
+                                        <div class="sync-block sync-block-compute" style="--offset:50%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sync-batch-row" data-batch="2">
+                                    <div class="sync-batch-label">Batch 2</div>
+                                    <div class="sync-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:2%;--span:64%"></div>
+                                        <div class="sync-block sync-block-transfer" style="--offset:66%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">read</span>
+                                        </div>
+                                        <div class="sync-block sync-block-compute" style="--offset:82%;--span:16%">
+                                            <div class="sync-block-progress"></div>
+                                            <span class="sync-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sync-timeline-note" id="syncTimelineNote">
+                                Requests and kernels form a staircase: each batch blocks on transfer before compute can begin.
+                            </div>
+
+                            <div class="action-row sync-model-actions">
+                                <button class="action-button primary" id="syncModelReplay" type="button">Execute</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="context-section async-model-section" id="asyncModelSection" aria-labelledby="asyncModelTitle">
+                <div class="async-model-header">
+                    <span class="eyebrow">Programming Model -- Async I/O</span>
+                    <h2 id="asyncModelTitle">Asynchronous I/O</h2>
+                    <h2 class="async-model-subtitle">Asynchronous I/O allows compute to continue while data is being transferred, improving overall throughput</h2>
+                </div>
+
+                <div class="context-shell async-model-body">
+                    <div class="context-copy async-model-copy" aria-label="Async I O pseudo-code with double buffering">
+                        <div class="async-code-frame">
+                            <div class="async-code-toolbar" aria-hidden="true">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <div class="async-buffer-strip" aria-hidden="true">
+                                <span class="async-buffer-pill" data-buffer="0">buf[0]</span>
+                                <span class="async-buffer-pill" data-buffer="1">buf[1]</span>
+                            </div>
+                            <div class="async-code-block">
+                                <div class="async-code-line" data-line="0">
+                                    <span class="async-code-number">1</span>
+                                    <span class="async-code-text">buffers = [slot0, slot1]</span>
+                                </div>
+                                <div class="async-code-line" data-line="1">
+                                    <span class="async-code-number">2</span>
+                                    <span class="async-code-text"><span class="async-code-call">agile.read_sync(batch0, buffers[0])</span></span>
+                                </div>
+                                <div class="async-code-line" data-line="2">
+                                    <span class="async-code-number">3</span>
+                                    <span class="async-code-text"><span class="async-code-keyword">for</span> step, batch <span class="async-code-keyword">in</span> enumerate(loader[1:]):</span>
+                                </div>
+                                <div class="async-code-line" data-line="3">
+                                    <span class="async-code-number">4</span>
+                                    <span class="async-code-text async-code-indent-1">next = (step + 1) &amp; 1</span>
+                                </div>
+                                <div class="async-code-line" data-line="4">
+                                    <span class="async-code-number">5</span>
+                                    <span class="async-code-text async-code-indent-1">ticket = <span class="async-code-call">agile.read_async(batch, buffers[next])</span> <span class="async-code-chip async-code-chip-prefetch" style="float: right;">prefetch next</span> </span>
+                                    
+                                </div>
+                                <div class="async-code-line" data-line="5">
+                                    <span class="async-code-number">6</span>
+                                    <span class="async-code-text async-code-indent-1">logits = <span class="async-code-call async-code-call-compute">run_kernel(buffers[step &amp; 1])</span> <span class="async-code-chip async-code-chip-overlap" style="float: right; margin-top:5px;">use current</span></span>
+                                </div>
+                                <div class="async-code-line" data-line="6">
+                                    <span class="async-code-number">7</span>
+                                    <span class="async-code-text async-code-indent-1">ticket.wait()</span>
+                                </div>
+                                <div class="async-code-line" data-line="7">
+                                    <span class="async-code-number">8</span>
+                                    <span class="async-code-text async-code-indent-1">commit(logits)</span>
+                                </div>
+                            </div>
+                            <div class="async-code-footer">
+                                <span class="async-code-status">Pipeline state</span>
+                                <span class="async-code-live" id="asyncCodeLive">ready to prefetch next batch</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="context-art async-model-art">
+                        <div class="async-timeline-frame" aria-label="Timeline showing asynchronous transfers overlapping with compute across batches">
+                            <div class="async-timeline-header">
+                                <span class="async-timeline-kicker">Async I/O Timeline</span>
+                                <div class="async-timeline-legend" aria-hidden="true">
+                                    <span><i class="async-legend-swatch async-legend-transfer"></i> Async transfer</span>
+                                    <span><i class="async-legend-swatch async-legend-compute"></i> Compute</span>
+                                </div>
+                            </div>
+
+                            <div class="async-axis" aria-hidden="true">
+                                <span>t0</span>
+                                <span>t1</span>
+                                <span>t2</span>
+                                <span>t3</span>
+                                <span>t4</span>
+                                <span>t5</span>
+                            </div>
+
+                            <div class="async-timeline-grid">
+                                <div class="async-batch-row" data-batch="0">
+                                    <div class="async-batch-label">Batch 0</div>
+                                    <div class="async-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:4%;--span:0%"></div>
+                                        <div class="async-block async-block-transfer" style="--offset:4%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">read</span>
+                                        </div>
+                                        <div class="async-block async-block-compute" style="--offset:22%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="async-batch-row" data-batch="1">
+                                    <div class="async-batch-label">Batch 1</div>
+                                    <div class="async-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:4%;--span:18%"></div>
+                                        <div class="async-block async-block-transfer" style="--offset:22%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">prefetch</span>
+                                        </div>
+                                        <div class="async-block async-block-compute" style="--offset:40%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="async-batch-row" data-batch="2">
+                                    <div class="async-batch-label">Batch 2</div>
+                                    <div class="async-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:4%;--span:36%"></div>
+                                        <div class="async-block async-block-transfer" style="--offset:40%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">prefetch</span>
+                                        </div>
+                                        <div class="async-block async-block-compute" style="--offset:58%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="async-batch-row" data-batch="3">
+                                    <div class="async-batch-label">Batch 3</div>
+                                    <div class="async-batch-lane">
+                                        <div class="sync-block-gap" style="--offset:4%;--span:54%"></div>
+                                        <div class="async-block async-block-transfer" style="--offset:58%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">prefetch</span>
+                                        </div>
+                                        <div class="async-block async-block-compute" style="--offset:76%;--span:18%">
+                                            <div class="async-block-progress"></div>
+                                            <span class="async-block-label">compute</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="async-timeline-note" id="asyncTimelineNote">
+                                Double buffering keeps one slot busy with compute while the other slot is already filling with the next batch.
+                            </div>
+
+                            <div class="action-row async-model-actions">
+                                <button class="action-button primary" id="asyncModelReplay" type="button">Execute</button>
                             </div>
                         </div>
                     </div>
@@ -327,7 +1089,7 @@
                                 type="button"
                                 data-title="AGIO"
                                 data-subtitle="ASPLOS'26 · PSU & NVIDIA"
-                                data-features="GPU-initiated"
+                                data-features="GPU-initiated|Asynchronous I/O"
                                 data-shortcomings="No file system abstraction"
                             >
                                 <span class="related-node-title">AGIO</span>
@@ -376,568 +1138,17 @@
                 </div>
             </section>
         </main>
-
-        <script>
-            (function () {
-                const scrollytelling = document.getElementById("scrollytelling");
-                const panels = Array.from(document.querySelectorAll("[data-panel]"));
-                const dots = Array.from(document.querySelectorAll(".stage-dot"));
-                const progressBar = document.getElementById("progressBar");
-                const connectionToggle = document.getElementById("connectionToggle");
-                const connectionFlyout = document.getElementById("connectionFlyout");
-                const connectionBackdrop = document.getElementById("connectionBackdrop");
-                const connectionClose = document.getElementById("connectionClose");
-                const hostInput = document.getElementById("server-host");
-                const portInput = document.getElementById("server-port");
-                const targetUrl = document.getElementById("target-url");
-                const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                const panelCount = panels.length;
-                const snapDelayMs = 140;
-                const snapThresholdPx = 6;
-                const storageKeys = {
-                    host: "websocket-demo-host",
-                    port: "websocket-demo-port"
-                };
-
-                scrollytelling.style.setProperty("--panel-count", String(panelCount));
-
-                let ticking = false;
-                let snapTimer = null;
-                let activeIndex = 0;
-                let isAutoSnapping = false;
-
-                function setConnectionPanelOpen(isOpen) {
-                    connectionFlyout.classList.toggle("is-open", isOpen);
-                    connectionBackdrop.classList.toggle("is-open", isOpen);
-                    connectionFlyout.setAttribute("aria-hidden", isOpen ? "false" : "true");
-                    connectionToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-
-                    if (isOpen) {
-                        hostInput.focus();
-                    }
-                }
-
-                function clamp(value, min, max) {
-                    return Math.min(Math.max(value, min), max);
-                }
-
-                function getWebSocketUrl() {
-                    const host = hostInput.value.trim() || "127.0.0.1";
-                    const port = portInput.value.trim() || "9002";
-                    return "ws://" + host + ":" + port;
-                }
-
-                function refreshTargetUrl() {
-                    localStorage.setItem(storageKeys.host, hostInput.value.trim());
-                    localStorage.setItem(storageKeys.port, portInput.value.trim());
-                    targetUrl.textContent = getWebSocketUrl();
-                }
-
-                function loadSavedTarget() {
-                    const savedHost = localStorage.getItem(storageKeys.host);
-                    const savedPort = localStorage.getItem(storageKeys.port);
-
-                    if (savedHost) {
-                        hostInput.value = savedHost;
-                    }
-
-                    if (savedPort) {
-                        portInput.value = savedPort;
-                    }
-                }
-
-                function scrollToPanel(index) {
-                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
-                    const targetProgress = panelCount > 1 ? index / (panelCount - 1) : 0;
-                    const targetTop = window.scrollY + scrollytelling.getBoundingClientRect().top + targetProgress * travel;
-                    const clampedIndex = clamp(index, 0, panelCount - 1);
-
-                    activeIndex = clampedIndex;
-                    isAutoSnapping = true;
-
-                    window.scrollTo({
-                        top: targetTop,
-                        behavior: reducedMotion ? "auto" : "smooth"
-                    });
-
-                    window.clearTimeout(snapTimer);
-                    snapTimer = window.setTimeout(function () {
-                        isAutoSnapping = false;
-                        updatePanels();
-                    }, reducedMotion ? 0 : 260);
-                }
-
-                function getTargetTopForPanel(index) {
-                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
-                    const targetProgress = panelCount > 1 ? index / (panelCount - 1) : 0;
-                    return window.scrollY + scrollytelling.getBoundingClientRect().top + targetProgress * travel;
-                }
-
-                function isStageActive() {
-                    const rect = scrollytelling.getBoundingClientRect();
-                    return rect.top <= 0 && rect.bottom >= window.innerHeight;
-                }
-
-                function snapToNearestPanel() {
-                    if (isAutoSnapping || !isStageActive()) {
-                        return;
-                    }
-
-                    const targetTop = getTargetTopForPanel(activeIndex);
-                    if (Math.abs(window.scrollY - targetTop) <= snapThresholdPx) {
-                        return;
-                    }
-
-                    scrollToPanel(activeIndex);
-                }
-
-                function updatePanels() {
-                    const rect = scrollytelling.getBoundingClientRect();
-                    const travel = Math.max(scrollytelling.offsetHeight - window.innerHeight, 1);
-                    const progress = clamp((-rect.top) / travel, 0, 1);
-                    const scaled = progress * Math.max(panelCount - 1, 1);
-                    activeIndex = Math.round(scaled);
-
-                    progressBar.style.transform = "scaleX(" + progress.toFixed(4) + ")";
-
-                    panels.forEach(function (panel, index) {
-                        const delta = scaled - index;
-                        const distance = Math.abs(delta);
-                        const opacity = reducedMotion ? (index === activeIndex ? 1 : 0) : clamp(1 - distance * 0.9, 0, 1);
-                        const shift = reducedMotion ? 0 : delta * -70;
-                        const scale = reducedMotion ? 1 : 1 - Math.min(distance, 1) * 0.09;
-                        const blur = reducedMotion ? 0 : Math.min(distance, 1) * 14;
-                        const tilt = reducedMotion ? 0 : delta * -2.4;
-                        const artShift = reducedMotion ? 0 : delta * -28;
-
-                        panel.style.setProperty("--panel-opacity", opacity.toFixed(4));
-                        panel.style.setProperty("--panel-shift", shift.toFixed(2) + "px");
-                        panel.style.setProperty("--panel-scale", scale.toFixed(4));
-                        panel.style.setProperty("--panel-blur", blur.toFixed(2) + "px");
-                        panel.style.setProperty("--panel-tilt", tilt.toFixed(2) + "deg");
-                        panel.style.setProperty("--art-shift", artShift.toFixed(2) + "px");
-                        panel.style.zIndex = String(panelCount - Math.round(distance * 10));
-                        panel.classList.toggle("is-active", index === activeIndex);
-                    });
-
-                    dots.forEach(function (dot, index) {
-                        dot.classList.toggle("is-active", index === activeIndex);
-                        dot.setAttribute("aria-current", index === activeIndex ? "true" : "false");
-                    });
-
-                    ticking = false;
-                }
-
-                function requestUpdate() {
-                    if (!ticking) {
-                        window.requestAnimationFrame(updatePanels);
-                        ticking = true;
-                    }
-
-                    if (!isAutoSnapping && isStageActive()) {
-                        window.clearTimeout(snapTimer);
-                        snapTimer = window.setTimeout(snapToNearestPanel, snapDelayMs);
-                    } else if (!isStageActive()) {
-                        window.clearTimeout(snapTimer);
-                    }
-                }
-
-                window.addEventListener("scroll", requestUpdate, { passive: true });
-                window.addEventListener("resize", requestUpdate);
-
-                dots.forEach(function (dot, index) {
-                    dot.addEventListener("click", function () {
-                        scrollToPanel(index);
-                    });
-                });
-
-                connectionToggle.addEventListener("click", function () {
-                    setConnectionPanelOpen(!connectionFlyout.classList.contains("is-open"));
-                });
-
-                connectionClose.addEventListener("click", function () {
-                    setConnectionPanelOpen(false);
-                    connectionToggle.focus();
-                });
-
-                connectionBackdrop.addEventListener("click", function () {
-                    setConnectionPanelOpen(false);
-                });
-
-                window.addEventListener("keydown", function (event) {
-                    if (event.key === "Escape" && connectionFlyout.classList.contains("is-open")) {
-                        setConnectionPanelOpen(false);
-                        connectionToggle.focus();
-                    }
-                });
-
-                function runPaperTitleAnimation() {
-                    var paperTitle = document.getElementById("paperTitle");
-                    var paperTitleLogo = document.getElementById("paperTitleLogo");
-                    var blinkTimers = [];
-                    if (!paperTitle) {
-                        return;
-                    }
-
-                    var slotOrder = ["A", "G", "I", "L", "E"];
-                    var letterColors = {
-                        A: "#7bf2c9",
-                        G: "#65c9ff",
-                        I: "#ffd280",
-                        L: "#ff9b8e",
-                        E: "#b8a6ff"
-                    };
-
-                    function revealPaperLogo() {
-                        if (!paperTitleLogo) {
-                            return;
-                        }
-
-                        window.setTimeout(function () {
-                            paperTitleLogo.classList.add("is-visible");
-                        }, reducedMotion ? 0 : 180);
-                    }
-
-                    function stopIdleBlinking() {
-                        blinkTimers.forEach(function (timerId) {
-                            window.clearTimeout(timerId);
-                        });
-                        blinkTimers = [];
-
-                        Array.from(paperTitle.querySelectorAll(".paper-word-initial.is-blinking, .paper-acronym-letter.is-blinking")).forEach(function (node) {
-                            node.classList.remove("is-blinking");
-                        });
-                    }
-
-                    function scheduleIdleBlinking() {
-                        stopIdleBlinking();
-
-                        var blinkTargets = slotOrder.reduce(function (targets, key) {
-                            var source = sources[key];
-                            var slot = paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
-
-                            if (source) {
-                                targets.push(source);
-                            }
-
-                            if (slot) {
-                                targets.push(slot);
-                            }
-
-                            return targets;
-                        }, []);
-
-                        if (!blinkTargets.length) {
-                            return;
-                        }
-
-                        function queueNextBlink() {
-                            var nextDelay = 900 + Math.random() * 1800;
-                            var timerId = window.setTimeout(function () {
-                                var target = blinkTargets[Math.floor(Math.random() * blinkTargets.length)];
-
-                                target.classList.remove("is-blinking");
-                                void target.offsetWidth;
-                                target.classList.add("is-blinking");
-
-                                var cleanupId = window.setTimeout(function () {
-                                    target.classList.remove("is-blinking");
-                                }, 620);
-                                blinkTimers.push(cleanupId);
-                                queueNextBlink();
-                            }, nextDelay);
-
-                            blinkTimers.push(timerId);
-                        }
-
-                        queueNextBlink();
-                    }
-
-                    if (reducedMotion) {
-                        slotOrder.forEach(function (key) {
-                            var reducedSource = paperTitle.querySelector('.paper-word[data-key="' + key + '"] .paper-word-initial');
-                            var reducedSlot = paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
-                            var reducedColor = letterColors[key] || "#65c9ff";
-
-                            if (reducedSource) {
-                                reducedSource.style.setProperty("--paper-accent", reducedColor);
-                                reducedSource.classList.add("is-highlighted");
-                            }
-
-                            if (reducedSlot) {
-                                reducedSlot.style.setProperty("--paper-accent", reducedColor);
-                                reducedSlot.classList.add("is-visible");
-                            }
-                        });
-
-                        paperTitle.classList.add("is-animated");
-                        revealPaperLogo();
-                        return;
-                    }
-
-                    var highlightDelay = 180;
-                    var holdBeforeFlight = 720;
-                    var launchOffsets = [0, 170, 90, 260, 140];
-                    var durations = [1380, 1820, 1540, 2060, 1680];
-                    var sources = {};
-
-                    Array.from(paperTitle.querySelectorAll(".paper-word[data-key]")).forEach(function (word) {
-                        var key = word.getAttribute("data-key");
-                        var initial = word.querySelector(".paper-word-initial");
-                        if (key && initial) {
-                            sources[key] = initial;
-                        }
-                    });
-
-                    var slots = slotOrder.map(function (key) {
-                        return paperTitle.querySelector('.paper-acronym-letter[data-slot="' + key + '"]');
-                    });
-
-                    if (slotOrder.some(function (key) { return !sources[key]; }) || slots.some(function (slot) { return !slot; })) {
-                        paperTitle.classList.add("is-animated");
-                        revealPaperLogo();
-                        return;
-                    }
-
-                    paperTitle.classList.add("is-animating");
-
-                    var completed = 0;
-
-                    function finishAnimation() {
-                        paperTitle.classList.remove("is-animating");
-                        paperTitle.classList.add("is-animated");
-                        revealPaperLogo();
-                        scheduleIdleBlinking();
-                    }
-
-                    slotOrder.forEach(function (key, index) {
-                        var source = sources[key];
-                        var slot = slots[index];
-                        var accent = letterColors[key] || "#65c9ff";
-                        var launchTime = highlightDelay * index + holdBeforeFlight + launchOffsets[index];
-
-                        source.style.setProperty("--paper-accent", accent);
-                        slot.style.setProperty("--paper-accent", accent);
-
-                        window.setTimeout(function () {
-                            source.classList.add("is-highlighted");
-                        }, highlightDelay * index);
-
-                        window.setTimeout(function () {
-                            var sourceRect = source.getBoundingClientRect();
-                            var slotRect = slot.getBoundingClientRect();
-                            var computed = window.getComputedStyle(source);
-                            var flyer = document.createElement("span");
-
-                            source.classList.add("is-source-active");
-
-                            flyer.className = "paper-fly-letter";
-                            flyer.textContent = key;
-                            flyer.style.setProperty("--paper-accent", accent);
-                            flyer.style.left = sourceRect.left + "px";
-                            flyer.style.top = sourceRect.top + "px";
-                            flyer.style.fontFamily = computed.fontFamily;
-                            flyer.style.fontSize = computed.fontSize;
-                            flyer.style.fontWeight = computed.fontWeight;
-                            flyer.style.lineHeight = computed.lineHeight;
-                            flyer.style.letterSpacing = computed.letterSpacing;
-                            document.body.appendChild(flyer);
-
-                            requestAnimationFrame(function () {
-                                flyer.style.transform = "translate(" + (slotRect.left - sourceRect.left) + "px, " + (slotRect.top - sourceRect.top) + "px) scale(1.08)";
-                                flyer.style.opacity = "1";
-                                flyer.style.transition = "transform " + durations[index] + "ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 220ms ease";
-                            });
-
-                            window.setTimeout(function () {
-                                slot.classList.add("is-visible");
-                                source.classList.remove("is-source-active");
-                                flyer.remove();
-                                completed += 1;
-                                if (completed === slotOrder.length) {
-                                    finishAnimation();
-                                }
-                            }, durations[index] + 60);
-                        }, launchTime);
-                    });
-                }
-
-                function initRelatedWorksDialog() {
-                    var nodes = Array.from(document.querySelectorAll(".related-node"));
-                    var map = document.getElementById("relatedWorksMap");
-                    var dialog = document.getElementById("relatedWorksDialog");
-                    var title = document.getElementById("relatedDialogTitle");
-                    var subtitle = document.getElementById("relatedDialogSubtitle");
-                    var features = document.getElementById("relatedDialogFeatures");
-                    var shortcomings = document.getElementById("relatedDialogShortcomings");
-                    var shortcomingsSection = document.getElementById("relatedDialogShortcomingsSection");
-                    var defaultNode = document.querySelector(".related-node.is-default") || nodes[0];
-                    var activeNode = null;
-
-                    if (!map || !dialog || !title || !subtitle || !features || !shortcomings || !shortcomingsSection || !nodes.length) {
-                        return;
-                    }
-
-                    function fillList(target, value) {
-                        target.textContent = "";
-                        var items = value.split("|").filter(Boolean);
-
-                        items.forEach(function (item) {
-                            var listItem = document.createElement("li");
-                            listItem.textContent = item;
-                            target.appendChild(listItem);
-                        });
-
-                        return items.length > 0;
-                    }
-
-                    function setDialogVisible(isVisible) {
-                        dialog.classList.toggle("is-visible", isVisible);
-                    }
-
-                    function clearActiveNode() {
-                        activeNode = null;
-                        setDialogVisible(false);
-                        nodes.forEach(function (item) {
-                            item.classList.remove("is-active");
-                        });
-                    }
-
-                    function positionDialog(node) {
-                        if (window.innerWidth <= 640) {
-                            dialog.style.removeProperty("left");
-                            dialog.style.removeProperty("top");
-                            dialog.style.removeProperty("max-width");
-                            return;
-                        }
-
-                        var mapRect = map.getBoundingClientRect();
-                        var nodeRect = node.getBoundingClientRect();
-                        var dialogRect = dialog.getBoundingClientRect();
-                        var horizontalGap = 18;
-                        var verticalPadding = 18;
-                        var minLeft = 18;
-                        var maxLeft = Math.max(minLeft, mapRect.width - dialogRect.width - 18);
-                        var preferredLeft = nodeRect.right - mapRect.left + horizontalGap;
-
-                        if (preferredLeft > maxLeft) {
-                            preferredLeft = nodeRect.left - mapRect.left - dialogRect.width - horizontalGap;
-                        }
-
-                        var top = nodeRect.top - mapRect.top + (nodeRect.height - dialogRect.height) / 2;
-                        var clampedTop = Math.min(Math.max(top, verticalPadding), Math.max(verticalPadding, mapRect.height - dialogRect.height - verticalPadding));
-                        var clampedLeft = Math.min(Math.max(preferredLeft, minLeft), maxLeft);
-
-                        dialog.style.left = clampedLeft + "px";
-                        dialog.style.top = clampedTop + "px";
-                        dialog.style.maxWidth = Math.min(320, Math.max(240, mapRect.width * 0.34)) + "px";
-                    }
-
-                    function activate(node) {
-                        activeNode = node;
-                        setDialogVisible(true);
-
-                        nodes.forEach(function (item) {
-                            item.classList.toggle("is-active", item === node);
-                        });
-
-                        title.textContent = node.dataset.title || "";
-                        subtitle.textContent = node.dataset.subtitle || "";
-                        fillList(features, node.dataset.features || "");
-                        shortcomingsSection.hidden = !fillList(shortcomings, node.dataset.shortcomings || "");
-                        positionDialog(node);
-                    }
-
-                    nodes.forEach(function (node) {
-                        node.addEventListener("mouseenter", function () {
-                            activate(node);
-                        });
-
-                        node.addEventListener("mouseleave", function (event) {
-                            var nextTarget = event.relatedTarget;
-
-                            if (nextTarget && nextTarget.closest && nextTarget.closest(".related-node")) {
-                                return;
-                            }
-
-                            if (activeNode === node) {
-                                clearActiveNode();
-                            }
-                        });
-
-                        node.addEventListener("focus", function () {
-                            activate(node);
-                        });
-
-                        node.addEventListener("blur", function (event) {
-                            var nextTarget = event.relatedTarget;
-
-                            if (nextTarget && nextTarget.closest && nextTarget.closest(".related-node")) {
-                                return;
-                            }
-
-                            if (activeNode === node) {
-                                clearActiveNode();
-                            }
-                        });
-
-                        node.addEventListener("click", function () {
-                            activate(node);
-                        });
-                    });
-
-                    window.addEventListener("resize", function () {
-                        if (activeNode) {
-                            positionDialog(activeNode);
-                        }
-                    });
-
-                    if (defaultNode) {
-                        title.textContent = defaultNode.dataset.title || "";
-                        subtitle.textContent = defaultNode.dataset.subtitle || "";
-                        fillList(features, defaultNode.dataset.features || "");
-                        shortcomingsSection.hidden = !fillList(shortcomings, defaultNode.dataset.shortcomings || "");
-                        activeNode = defaultNode;
-                        positionDialog(defaultNode);
-                    }
-                    setDialogVisible(false);
-                }
-
-                loadSavedTarget();
-                refreshTargetUrl();
-                hostInput.addEventListener("input", refreshTargetUrl);
-                portInput.addEventListener("input", refreshTargetUrl);
-                updatePanels();
-                initRelatedWorksDialog();
-                window.requestAnimationFrame(function () {
-                    window.requestAnimationFrame(runPaperTitleAnimation);
-                });
-            })();
-        </script>
+        <img src="http://stat.zhuopingyang.com/demo-git" style="height: 0px; width:0px">
         <script src="vendor/jquery/jquery-3.7.1.min.js"></script>
         <script src="vendor/chartjs/chart.umd.min.js"></script>
+        <script src="vendor/animejs/anime.min.js"></script>
+        <script src="js/page-shell.js"></script>
         <script src="js/graph-breakdown-chart.js"></script>
         <script src="js/ctc-chart.js"></script>
         <script src="js/dlrm-charts.js"></script>
+        <script src="js/narrative-sections.js"></script>
+        <script src="js/io-step-animation.js"></script>
         <script src="js/app.js"></script>
-        <script>
-            (function () {
-                var dlrmConfigButton = document.getElementById("dlrm-config-btn");
-
-                if (window.GraphBreakdownChart) {
-                    GraphBreakdownChart.init("graph-breakdown-chart");
-                    GraphBreakdownChart.load("data/sweep_results.json");
-                }
-
-                if (window.CtcChart) {
-                    CtcChart.init("ctc-chart");
-                    CtcChart.load("data/sweep_ctc_data.json");
-                }
-
-                if (dlrmConfigButton) {
-                    dlrmConfigButton.click();
-                }
-            })();
-        </script>
+        <script src="js/page-bootstrap.js"></script>
     </body>
 </html>
